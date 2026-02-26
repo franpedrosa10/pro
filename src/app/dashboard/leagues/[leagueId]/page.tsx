@@ -1,0 +1,260 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
+import { requireUser } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
+
+type LeagueStandingsPageProps = {
+  params: Promise<{
+    leagueId: string;
+  }>;
+  searchParams: Promise<{
+    matchday?: string | string[];
+  }>;
+};
+
+type LeagueRow = {
+  userId: string;
+  displayName: string;
+  fantasy: number;
+  prode: number;
+  total: number;
+};
+
+function parseMatchdayParam(value: string | string[] | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+  if (Array.isArray(value)) {
+    return value[0] ?? null;
+  }
+  return value;
+}
+
+export default async function LeagueStandingsPage({ params, searchParams }: LeagueStandingsPageProps) {
+  const { supabase, user } = await requireUser();
+  const { leagueId } = await params;
+  const query = await searchParams;
+  const requestedMatchdayId = parseMatchdayParam(query.matchday);
+
+  let schemaError: string | null = null;
+
+  const leagueResult = await supabase
+    .from("leagues")
+    .select("id, name, join_code")
+    .eq("id", leagueId)
+    .maybeSingle();
+
+  if (leagueResult.error) {
+    schemaError = leagueResult.error.message;
+  }
+  if (!leagueResult.data) {
+    notFound();
+  }
+
+  const matchdaysResult = await supabase
+    .from("matchdays")
+    .select("id, name, order_index")
+    .order("order_index", { ascending: true });
+
+  if (matchdaysResult.error) {
+    schemaError = schemaError ?? matchdaysResult.error.message;
+  }
+
+  const matchdays =
+    matchdaysResult.data?.map((matchday) => ({
+      id: matchday.id as string,
+      name: matchday.name as string,
+      order: Number(matchday.order_index),
+    })) ?? [];
+
+  const selectedMatchday =
+    matchdays.find((matchday) => matchday.id === requestedMatchdayId) ?? null;
+
+  let rows: LeagueRow[] = [];
+
+  if (!selectedMatchday) {
+    const totalsResult = await supabase
+      .from("v_league_standings")
+      .select("user_id, display_name, fantasy_points, prode_points, combined_points")
+      .eq("league_id", leagueId)
+      .order("combined_points", { ascending: false });
+
+    if (totalsResult.error) {
+      schemaError = schemaError ?? totalsResult.error.message;
+    } else {
+      rows =
+        totalsResult.data?.map((row) => ({
+          userId: row.user_id as string,
+          displayName: row.display_name as string,
+          fantasy: Number(row.fantasy_points ?? 0),
+          prode: Number(row.prode_points ?? 0),
+          total: Number(row.combined_points ?? 0),
+        })) ?? [];
+    }
+  } else {
+    const membersResult = await supabase
+      .from("league_members")
+      .select("user_id, profiles(display_name, username)")
+      .eq("league_id", leagueId);
+
+    if (membersResult.error) {
+      schemaError = schemaError ?? membersResult.error.message;
+    }
+
+    const memberUserIds = (membersResult.data ?? []).map((row) => row.user_id as string);
+
+    const fantasyResult =
+      memberUserIds.length === 0
+        ? { data: [] as Array<{ user_id: string; points: number }>, error: null }
+        : await supabase
+            .from("v_fantasy_user_matchday_scores")
+            .select("user_id, points")
+            .eq("matchday_id", selectedMatchday.id)
+            .in("user_id", memberUserIds);
+
+    const prodeResult =
+      memberUserIds.length === 0
+        ? { data: [] as Array<{ user_id: string; points: number }>, error: null }
+        : await supabase
+            .from("v_prode_user_matchday_scores")
+            .select("user_id, points")
+            .eq("matchday_id", selectedMatchday.id)
+            .in("user_id", memberUserIds);
+
+    if (fantasyResult.error) {
+      schemaError = schemaError ?? fantasyResult.error.message;
+    }
+    if (prodeResult.error) {
+      schemaError = schemaError ?? prodeResult.error.message;
+    }
+
+    const nameByUserId = new Map<string, string>();
+    (membersResult.data ?? []).forEach((row) => {
+      const profile = row.profiles as { display_name?: string | null; username?: string | null } | null;
+      const displayName = profile?.display_name || profile?.username || "Jugador";
+      nameByUserId.set(row.user_id as string, displayName);
+    });
+
+    const fantasyByUserId = new Map<string, number>();
+    (fantasyResult.data ?? []).forEach((row) => {
+      fantasyByUserId.set(row.user_id as string, Number(row.points ?? 0));
+    });
+
+    const prodeByUserId = new Map<string, number>();
+    (prodeResult.data ?? []).forEach((row) => {
+      prodeByUserId.set(row.user_id as string, Number(row.points ?? 0));
+    });
+
+    rows = Array.from(nameByUserId.entries())
+      .map(([userId, displayName]) => {
+        const fantasy = fantasyByUserId.get(userId) ?? 0;
+        const prode = prodeByUserId.get(userId) ?? 0;
+        return {
+          userId,
+          displayName,
+          fantasy,
+          prode,
+          total: fantasy + prode,
+        };
+      })
+      .sort((a, b) => b.total - a.total || b.fantasy - a.fantasy || b.prode - a.prode);
+  }
+
+  return (
+    <div className="fade-in space-y-4">
+      <div className="panel-strong p-4 sm:p-5">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="chip w-fit">Liga privada</p>
+            <h1 className="mt-2 text-5xl leading-none sm:text-6xl">{leagueResult.data.name}</h1>
+            <p className="section-subtitle mt-2 text-sm">
+              Codigo de ingreso:{" "}
+              <span className="rounded bg-[#9a6b00] px-2 py-1 font-mono text-xs text-white">
+                {leagueResult.data.join_code}
+              </span>
+            </p>
+          </div>
+          <Link href="/dashboard/leagues" className="btn-ghost px-3 py-2 text-sm">
+            Ligas
+          </Link>
+        </div>
+      </div>
+
+      <section className="panel p-4">
+        <form className="flex flex-wrap items-end gap-2" method="get">
+          <label className="space-y-1 text-sm">
+            <span className="label-tech block">Vista</span>
+            <select name="matchday" defaultValue={selectedMatchday?.id ?? ""} className="select-tech">
+              <option value="">Acumulado total</option>
+              {matchdays.map((matchday) => (
+                <option key={matchday.id} value={matchday.id}>
+                  {matchday.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <button type="submit" className="btn-primary px-3 py-2 text-sm">
+            Aplicar
+          </button>
+
+          {selectedMatchday ? (
+            <Link href={`/dashboard/leagues/${leagueId}`} className="btn-ghost px-3 py-2 text-sm">
+              Limpiar
+            </Link>
+          ) : null}
+        </form>
+
+        <p className="section-subtitle mt-3 text-sm">
+          Mostrando:{" "}
+          <span className="font-semibold text-[#1f2937]">
+            {selectedMatchday ? `${selectedMatchday.name} (Fantasy + Prode)` : "Acumulado general"}
+          </span>
+        </p>
+      </section>
+
+      {schemaError ? <div className="alert-warning rounded-2xl p-4 text-sm">Error al cargar la tabla de liga: {schemaError}</div> : null}
+
+      <section className="panel p-5">
+        {rows.length === 0 ? (
+          <p className="section-subtitle text-sm">Todavia no hay miembros o puntajes para esta vista.</p>
+        ) : (
+          <div className="table-shell">
+            <table className="w-full border-collapse text-sm">
+              <thead className="text-[#6b7280]">
+                <tr className="text-left">
+                  <th className="px-3 py-2">#</th>
+                  <th className="px-3 py-2">Jugador</th>
+                  <th className="px-3 py-2">Fantasy</th>
+                  <th className="px-3 py-2">Prode</th>
+                  <th className="px-3 py-2">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, index) => (
+                  <tr
+                    key={row.userId}
+                    className={`border-t border-[#eadfbf] ${row.userId === user.id ? "bg-[#fff4cf] font-semibold" : ""}`}
+                  >
+                    <td className="px-3 py-2 text-[#6b7280]">{index + 1}</td>
+                    <td className="px-3 py-2 text-[#1f2937]">
+                      {row.displayName}
+                      {row.userId === user.id ? (
+                        <span className="ml-2 rounded bg-[#9a6b00] px-1.5 py-0.5 text-[10px] text-white">Vos</span>
+                      ) : null}
+                    </td>
+                    <td className="px-3 py-2 text-[#6b7280]">{row.fantasy}</td>
+                    <td className="px-3 py-2 text-[#6b7280]">{row.prode}</td>
+                    <td className="px-3 py-2 text-[#1f2937]">{row.total}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
