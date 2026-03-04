@@ -14,6 +14,10 @@ type LeagueManagerProps = {
   leagues: LeagueItem[];
 };
 
+function normalizeBaseUrl(value: string) {
+  return value.endsWith("/") ? value.slice(0, -1) : value;
+}
+
 export function LeagueManager({ leagues }: LeagueManagerProps) {
   const [leagueName, setLeagueName] = useState("");
   const [joinCode, setJoinCode] = useState("");
@@ -21,8 +25,70 @@ export function LeagueManager({ leagues }: LeagueManagerProps) {
   const [info, setInfo] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const [copyState, setCopyState] = useState<string | null>(null);
 
   const router = useRouter();
+  const configuredBaseUrl = normalizeBaseUrl(process.env.NEXT_PUBLIC_SITE_URL ?? "");
+
+  function getInviteLink(code: string) {
+    if (!configuredBaseUrl) {
+      return `/invite/${code}`;
+    }
+    return `${configuredBaseUrl}/invite/${code}`;
+  }
+
+  function toAbsoluteInviteLink(inviteLink: string) {
+    if (inviteLink.startsWith("http://") || inviteLink.startsWith("https://")) {
+      return inviteLink;
+    }
+
+    if (typeof window !== "undefined") {
+      return `${normalizeBaseUrl(window.location.origin)}${inviteLink}`;
+    }
+
+    return inviteLink;
+  }
+
+  async function copyValue(value: string, stateKey: string, okMessage: string) {
+    setError(null);
+    setInfo(null);
+
+    try {
+      if (typeof navigator === "undefined" || !navigator.clipboard) {
+        throw new Error("Clipboard API no disponible.");
+      }
+
+      await navigator.clipboard.writeText(value);
+      setCopyState(stateKey);
+      setInfo(okMessage);
+      setTimeout(() => {
+        setCopyState((current) => (current === stateKey ? null : current));
+      }, 1300);
+    } catch {
+      setError("No se pudo copiar automaticamente. Copialo manualmente.");
+    }
+  }
+
+  async function shareLeague(league: LeagueItem) {
+    const inviteLink = toAbsoluteInviteLink(getInviteLink(league.join_code));
+    const text = `Unite a mi liga privada "${league.name}" en Fantasy + Prode: ${inviteLink}`;
+
+    if (typeof navigator !== "undefined" && "share" in navigator) {
+      try {
+        await navigator.share({
+          title: `Invitacion a ${league.name}`,
+          text,
+          url: inviteLink,
+        });
+        setInfo("Invitacion compartida.");
+        return;
+      } catch {
+        // User cancelled or API error: fallback to copy.
+      }
+    }
+
+    await copyValue(inviteLink, `${league.id}:link`, "Link de invitacion copiado.");
+  }
 
   async function handleCreateLeague(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -44,7 +110,14 @@ export function LeagueManager({ leagues }: LeagueManagerProps) {
     }
 
     setLeagueName("");
-    setInfo(`Liga creada. Codigo de ingreso: ${payload.league.join_code}`);
+
+    const newCode = payload.league?.join_code as string | undefined;
+    if (newCode) {
+      setInfo(`Liga creada. Codigo: ${newCode}. Link: ${getInviteLink(newCode)}`);
+    } else {
+      setInfo("Liga creada correctamente.");
+    }
+
     router.refresh();
   }
 
@@ -68,14 +141,18 @@ export function LeagueManager({ leagues }: LeagueManagerProps) {
     }
 
     setJoinCode("");
-    setInfo("Te uniste a la liga correctamente.");
+    if (payload.alreadyJoined) {
+      setInfo("Ya estabas en esa liga. Te dejamos el acceso directo disponible.");
+    } else {
+      setInfo("Te uniste a la liga correctamente.");
+    }
     router.refresh();
   }
 
   return (
     <section className="panel p-5">
       <h2 className="text-4xl leading-none">Ligas privadas</h2>
-      <p className="section-subtitle mt-2 text-sm">Crea una liga para competir entre amigos o unite con codigo.</p>
+      <p className="section-subtitle mt-2 text-sm">Crea una liga, unite por codigo y comparti invitacion directa por link.</p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <form className="panel-soft space-y-2 p-3" onSubmit={handleCreateLeague}>
@@ -86,7 +163,7 @@ export function LeagueManager({ leagues }: LeagueManagerProps) {
             required
             minLength={3}
             maxLength={40}
-            placeholder="Ej: Oficina 2026"
+            placeholder="Ej: La Banda del Mundial"
             className="input-tech"
           />
           <button
@@ -128,19 +205,62 @@ export function LeagueManager({ leagues }: LeagueManagerProps) {
           <p className="panel-soft p-3 text-sm text-[#6b7280]">Todavia no estas en ninguna liga.</p>
         ) : (
           <ul className="space-y-2">
-            {leagues.map((league) => (
-              <li key={league.id} className="panel-soft p-3 text-sm">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium text-[#1f2937]">{league.name}</span>
-                  <span className="rounded bg-[#9a6b00] px-2 py-1 font-mono text-xs text-white">{league.join_code}</span>
-                </div>
-                <div className="mt-2">
-                  <Link href={`/dashboard/leagues/${league.id}`} className="link-inline inline-flex text-xs">
-                    Ver tabla de liga
-                  </Link>
-                </div>
-              </li>
-            ))}
+            {leagues.map((league) => {
+              const inviteLink = getInviteLink(league.join_code);
+              const shareableInviteLink = toAbsoluteInviteLink(inviteLink);
+              const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(
+                `Unite a mi liga "${league.name}" en Fantasy + Prode: ${shareableInviteLink}`,
+              )}`;
+
+              return (
+                <li key={league.id} className="panel-soft p-3 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-medium text-[#1f2937]">{league.name}</span>
+                    <span className="rounded bg-[#9a6b00] px-2 py-1 font-mono text-xs text-white">{league.join_code}</span>
+                  </div>
+
+                  <p className="mt-2 break-all text-xs text-[#6b7280]">{inviteLink}</p>
+
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => copyValue(league.join_code, `${league.id}:code`, "Codigo copiado.")}
+                      className="btn-ghost px-2 py-1 text-xs"
+                    >
+                      {copyState === `${league.id}:code` ? "Copiado" : "Copiar codigo"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => copyValue(inviteLink, `${league.id}:link`, "Link de invitacion copiado.")}
+                      className="btn-ghost px-2 py-1 text-xs"
+                    >
+                      {copyState === `${league.id}:link` ? "Copiado" : "Copiar link"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => shareLeague(league)}
+                      className="btn-ghost px-2 py-1 text-xs"
+                    >
+                      Compartir
+                    </button>
+
+                    <a href={whatsappUrl} target="_blank" rel="noreferrer" className="btn-ghost px-2 py-1 text-xs">
+                      WhatsApp
+                    </a>
+
+                    <Link href={`/invite/${league.join_code}`} className="btn-soft px-2 py-1 text-xs">
+                      Ver invitacion
+                    </Link>
+
+                    <Link href={`/dashboard/leagues/${league.id}`} className="link-inline inline-flex items-center px-1 text-xs">
+                      Ver tabla de liga
+                    </Link>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

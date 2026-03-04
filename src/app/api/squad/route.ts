@@ -114,28 +114,17 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: validation.errors.join(" ") }, { status: 400 });
   }
 
-  const deleteResult = await supabase
-    .from("fantasy_team_players")
-    .delete()
-    .eq("team_id", team.id);
+  const replaceResult = await supabase.rpc("replace_fantasy_team_players", {
+    p_team_id: team.id,
+    p_players: selections.map((selection) => ({
+      player_id: selection.playerId,
+      slot: selection.slot,
+      is_captain: selection.isCaptain,
+    })),
+  });
 
-  if (deleteResult.error) {
-    return NextResponse.json({ error: deleteResult.error.message }, { status: 400 });
-  }
-
-  if (selections.length > 0) {
-    const insertResult = await supabase.from("fantasy_team_players").insert(
-      selections.map((selection) => ({
-        team_id: team.id,
-        player_id: selection.playerId,
-        slot: selection.slot,
-        is_captain: selection.isCaptain,
-      })),
-    );
-
-    if (insertResult.error) {
-      return NextResponse.json({ error: insertResult.error.message }, { status: 400 });
-    }
+  if (replaceResult.error) {
+    return NextResponse.json({ error: replaceResult.error.message }, { status: 400 });
   }
 
   return NextResponse.json({

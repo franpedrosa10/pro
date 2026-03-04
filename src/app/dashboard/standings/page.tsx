@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 
 import { requireUser } from "@/lib/auth";
 
@@ -187,7 +187,7 @@ export default async function StandingsPage({ searchParams }: StandingsPageProps
         ) : (
           <div className="table-shell">
             <table className="w-full border-collapse text-sm">
-              <thead className="text-[#6b7280]">
+              <thead className="text-[#4c5564]">
                 <tr className="text-left">
                   <th className="px-3 py-2">#</th>
                   <th className="px-3 py-2">Jugador</th>
@@ -200,17 +200,17 @@ export default async function StandingsPage({ searchParams }: StandingsPageProps
                 {rows.map((row, index) => (
                   <tr
                     key={row.userId}
-                    className={`border-t border-[#eadfbf] ${row.userId === user.id ? "bg-[#fff4cf] font-semibold" : ""}`}
+                    className={`border-t border-[#b9a068] ${row.userId === user.id ? "bg-[#fff2c6] font-semibold" : ""}`}
                   >
-                    <td className="px-3 py-2 text-[#6b7280]">{index + 1}</td>
+                    <td className="px-3 py-2 text-[#4c5564]">{index + 1}</td>
                     <td className="px-3 py-2 text-[#1f2937]">
                       {row.displayName}
                       {row.userId === user.id ? (
-                        <span className="ml-2 rounded bg-[#9a6b00] px-1.5 py-0.5 text-[10px] text-white">Vos</span>
+                        <span className="ml-2 rounded bg-[#1d2430] px-1.5 py-0.5 text-[10px] text-[#ffe289]">Vos</span>
                       ) : null}
                     </td>
-                    <td className="px-3 py-2 text-[#6b7280]">{row.fantasy}</td>
-                    <td className="px-3 py-2 text-[#6b7280]">{row.prode}</td>
+                    <td className="px-3 py-2 text-[#4c5564]">{row.fantasy}</td>
+                    <td className="px-3 py-2 text-[#4c5564]">{row.prode}</td>
                     <td className="px-3 py-2 text-[#1f2937]">{row.total}</td>
                   </tr>
                 ))}
@@ -222,4 +222,5 @@ export default async function StandingsPage({ searchParams }: StandingsPageProps
     </div>
   );
 }
+
 

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -207,7 +207,7 @@ export function AuthForm({ nextPath = "/dashboard", initialError = null }: AuthF
           type="button"
           onClick={() => setMode("login")}
           className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${
-            mode === "login" ? "bg-[#9a6b00] text-white" : "text-[#6b7280] hover:bg-[#fff4cf]"
+            mode === "login" ? "bg-[#1d2430] text-[#ffe289]" : "text-[#6b7280] hover:bg-[#fff4cf]"
           }`}
         >
           Entrar
@@ -216,7 +216,7 @@ export function AuthForm({ nextPath = "/dashboard", initialError = null }: AuthF
           type="button"
           onClick={() => setMode("signup")}
           className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${
-            mode === "signup" ? "bg-[#9a6b00] text-white" : "text-[#6b7280] hover:bg-[#fff4cf]"
+            mode === "signup" ? "bg-[#1d2430] text-[#ffe289]" : "text-[#6b7280] hover:bg-[#fff4cf]"
           }`}
         >
           Crear cuenta
@@ -352,4 +352,5 @@ export function AuthForm({ nextPath = "/dashboard", initialError = null }: AuthF
     </div>
   );
 }
+
 

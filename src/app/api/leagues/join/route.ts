@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -10,6 +10,31 @@ const joinLeagueSchema = z.object({
     .toUpperCase()
     .regex(/^[A-Z0-9]{6}$/),
 });
+
+type JoinLeagueRpcRow = {
+  league_id: string;
+  league_name: string;
+  join_code: string;
+  already_member: boolean;
+};
+
+function mapJoinError(message: string) {
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("no autenticado")) {
+    return { status: 401, error: "No autenticado." };
+  }
+
+  if (normalized.includes("codigo invalido")) {
+    return { status: 400, error: "Codigo invalido." };
+  }
+
+  if (normalized.includes("liga no encontrada")) {
+    return { status: 404, error: "Liga no encontrada." };
+  }
+
+  return { status: 400, error: message };
+}
 
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient();
@@ -29,33 +54,27 @@ export async function POST(request: Request) {
 
   const { joinCode } = parseResult.data;
 
-  const leagueResult = await supabase
-    .from("leagues")
-    .select("id, name")
-    .eq("join_code", joinCode)
-    .maybeSingle();
-
-  if (leagueResult.error) {
-    return NextResponse.json({ error: leagueResult.error.message }, { status: 400 });
-  }
-
-  if (!leagueResult.data) {
-    return NextResponse.json({ error: "Liga no encontrada." }, { status: 404 });
-  }
-
-  const joinResult = await supabase.from("league_members").insert({
-    league_id: leagueResult.data.id,
-    user_id: user.id,
+  const joinResult = await supabase.rpc("join_league_with_code", {
+    p_join_code: joinCode,
   });
 
   if (joinResult.error) {
-    const message = joinResult.error.message.toLowerCase();
-    if (message.includes("duplicate") || message.includes("already")) {
-      return NextResponse.json({ league: leagueResult.data, alreadyJoined: true });
-    }
-
-    return NextResponse.json({ error: joinResult.error.message }, { status: 400 });
+    const mapped = mapJoinError(joinResult.error.message);
+    return NextResponse.json({ error: mapped.error }, { status: mapped.status });
   }
 
-  return NextResponse.json({ league: leagueResult.data });
+  const row = (joinResult.data?.[0] as JoinLeagueRpcRow | undefined) ?? null;
+  if (!row) {
+    return NextResponse.json({ error: "No se pudo resolver la liga." }, { status: 400 });
+  }
+
+  return NextResponse.json({
+    league: {
+      id: row.league_id,
+      name: row.league_name,
+      join_code: row.join_code,
+    },
+    alreadyJoined: row.already_member,
+  });
 }
+

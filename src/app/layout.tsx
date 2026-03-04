@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Poppins, JetBrains_Mono } from "next/font/google";
+import { Manrope, Barlow_Condensed, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
+const manrope = Manrope({
   variable: "--font-body",
   subsets: ["latin"],
 });
 
-const poppins = Poppins({
+const barlowCondensed = Barlow_Condensed({
   variable: "--font-display",
   weight: ["600", "700"],
   subsets: ["latin"],
@@ -32,10 +32,11 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body
         suppressHydrationWarning
-        className={`${spaceGrotesk.variable} ${poppins.variable} ${jetbrainsMono.variable} min-h-screen antialiased`}
+        className={`${manrope.variable} ${barlowCondensed.variable} ${jetbrainsMono.variable} min-h-screen antialiased`}
       >
         {children}
       </body>
     </html>
   );
 }
+

@@ -469,8 +469,120 @@ as $$
   );
 $$;
 
+create or replace function public.join_league_with_code(p_join_code text)
+returns table(
+  league_id uuid,
+  league_name text,
+  join_code varchar(6),
+  already_member boolean
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid;
+  v_league public.leagues%rowtype;
+  v_code text;
+  v_already boolean;
+begin
+  v_user_id := auth.uid();
+
+  if v_user_id is null then
+    raise exception 'No autenticado';
+  end if;
+
+  v_code := upper(trim(coalesce(p_join_code, '')));
+  if v_code !~ '^[A-Z0-9]{6}$' then
+    raise exception 'Codigo invalido';
+  end if;
+
+  select *
+  into v_league
+  from public.leagues l
+  where l.join_code = v_code;
+
+  if not found then
+    raise exception 'Liga no encontrada';
+  end if;
+
+  select exists (
+    select 1
+    from public.league_members lm
+    where lm.league_id = v_league.id
+      and lm.user_id = v_user_id
+  )
+  into v_already;
+
+  if not v_already then
+    insert into public.league_members (league_id, user_id)
+    values (v_league.id, v_user_id)
+    on conflict (league_id, user_id) do nothing;
+  end if;
+
+  return query
+  select
+    v_league.id,
+    v_league.name,
+    v_league.join_code,
+    v_already;
+end;
+$$;
+
+create or replace function public.replace_fantasy_team_players(
+  p_team_id uuid,
+  p_players jsonb
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid;
+  v_payload jsonb;
+begin
+  v_user_id := auth.uid();
+
+  if v_user_id is null then
+    raise exception 'No autenticado';
+  end if;
+
+  if not exists (
+    select 1
+    from public.fantasy_teams ft
+    where ft.id = p_team_id
+      and ft.user_id = v_user_id
+  ) then
+    raise exception 'Equipo no encontrado';
+  end if;
+
+  v_payload := coalesce(p_players, '[]'::jsonb);
+  if jsonb_typeof(v_payload) <> 'array' then
+    raise exception 'Formato de jugadores invalido';
+  end if;
+
+  if jsonb_array_length(v_payload) > 15 then
+    raise exception 'Maximo de 15 jugadores por plantel';
+  end if;
+
+  delete from public.fantasy_team_players
+  where team_id = p_team_id;
+
+  insert into public.fantasy_team_players (team_id, player_id, slot, is_captain)
+  select
+    p_team_id,
+    (entry ->> 'player_id')::uuid,
+    (entry ->> 'slot')::public.squad_slot,
+    coalesce((entry ->> 'is_captain')::boolean, false)
+  from jsonb_array_elements(v_payload) as entry;
+end;
+$$;
+
 grant execute on function public.is_league_member(uuid) to authenticated;
 grant execute on function public.is_league_owner(uuid) to authenticated;
+grant execute on function public.join_league_with_code(text) to authenticated;
+grant execute on function public.replace_fantasy_team_players(uuid, jsonb) to authenticated;
 
 alter table public.profiles enable row level security;
 alter table public.national_teams enable row level security;
@@ -668,3 +780,4 @@ create policy prode_predictions_delete_self on public.prode_predictions
   using (user_id = auth.uid());
 
 commit;
+

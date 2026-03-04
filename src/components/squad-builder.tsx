@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -801,7 +801,7 @@ export function SquadBuilder({
                 return (
                   <tr
                     key={player.id}
-                    className={`border-t border-[#eadfbf] ${
+                    className={`border-t border-[#b9a068] ${
                       isSelected ? "bg-[#fff6d9]/60" : "bg-transparent"
                     }`}
                   >
@@ -873,5 +873,6 @@ export function SquadBuilder({
     </section>
   );
 }
+
 
 

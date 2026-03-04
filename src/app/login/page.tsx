@@ -42,20 +42,20 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     <main className="page-shell">
       <div className="app-container grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.86fr)]">
         <section className="panel-strong p-6 sm:p-8">
-          <p className="chip w-fit">Bienvenido</p>
-          <h1 className="mt-3 text-6xl leading-none sm:text-7xl">Entrá y empezá a jugar</h1>
+          <p className="chip w-fit">Acceso</p>
+          <h1 className="mt-3 text-6xl leading-none sm:text-7xl">Entra y arranca la fecha</h1>
           <p className="section-subtitle mt-3 max-w-md text-sm sm:text-base">
-            Un solo hub para fantasy estilo Gran DT y prode por resultados, con ligas privadas y tabla global.
+            Carga equipo, prode y ligas en el mismo lugar. Entrar toma 20 segundos, competir dura todo el Mundial.
           </p>
 
-          <div className="mt-6 grid gap-2 text-sm text-[#6b7280]">
+          <div className="mt-6 grid gap-2 text-sm text-[#4c5564]">
             <p>- Google OAuth y email/password</p>
-            <p>- Mi equipo + prode en paralelo</p>
-            <p>- Ligas por codigo y ranking global</p>
+            <p>- Ranking global + ligas privadas</p>
+            <p>- Mi equipo y prode en paralelo</p>
           </div>
 
-          <div className="panel-soft mt-6 p-4 text-xs text-[#6b7280] sm:text-sm">
-            Si ves error de provider en Google, es configuracion de Supabase/Google Cloud, no del frontend.
+          <div className="panel-soft mt-6 p-4 text-xs text-[#4c5564] sm:text-sm">
+            Si aparece error de Google provider, el frontend te muestra checklist exacto para corregir Supabase/Google Cloud.
           </div>
         </section>
 

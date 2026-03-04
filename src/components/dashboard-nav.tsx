@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -18,10 +18,6 @@ const NAV_ITEMS = [
 ] as const;
 
 function isActive(pathname: string, href: string) {
-  if (href === "/dashboard") {
-    return pathname === "/dashboard";
-  }
-
   return pathname.startsWith(href);
 }
 
@@ -34,13 +30,13 @@ export function DashboardNav({ profileName }: DashboardNavProps) {
         <div className="flex items-center gap-3">
           <Link
             href="/dashboard"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#d5c28a] bg-[#9a6b00] text-sm font-black text-white"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[#1d2430] bg-[#1d2430] text-sm font-black text-[#ffe289]"
           >
             FP
           </Link>
 
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#6b7280]">Mundial 2026</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#4c5564]">Mundial 2026</p>
             <p className="text-sm font-semibold text-[#1f2937]">{profileName}</p>
           </div>
         </div>

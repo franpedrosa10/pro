@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 
 import { LeagueManager } from "@/components/league-manager";
 import { requireUser } from "@/lib/auth";
@@ -122,10 +122,24 @@ export default async function DashboardPage() {
 
   return (
     <div className="fade-in space-y-5">
-      <header className="panel-strong p-4 sm:p-5">
-        <p className="chip w-fit">Resumen</p>
-        <h1 className="mt-2 text-5xl leading-none sm:text-6xl">Centro de juego</h1>
-        <p className="section-subtitle mt-2">Estado rapido de equipo, prode, ligas y ranking.</p>
+      <header className="panel-strong p-5 sm:p-6">
+        <p className="chip w-fit">Centro de control</p>
+        <h1 className="mt-2 text-5xl leading-none sm:text-6xl">Tablero de competencia</h1>
+        <p className="section-subtitle mt-2 max-w-2xl">
+          Tu estado actual en Fantasy, Prode y ligas privadas. Todo desde una sola vista.
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link href="/dashboard/squad" className="btn-primary px-4 py-2 text-sm">
+            Mi equipo
+          </Link>
+          <Link href="/dashboard/prode" className="btn-ghost px-4 py-2 text-sm">
+            Cargar prode
+          </Link>
+          <Link href="/dashboard/leagues" className="btn-ghost px-4 py-2 text-sm">
+            Mis ligas
+          </Link>
+        </div>
       </header>
 
       {schemaError ? (
@@ -157,11 +171,11 @@ export default async function DashboardPage() {
           <p className="kpi-label">Ligas</p>
           <p className="kpi-value">{leagues.length}</p>
           <p className="kpi-meta">Privadas activas en tu cuenta.</p>
-          <p className="mt-3 font-mono text-[11px] text-[#6b7280]">
+          <p className="mt-3 font-mono text-[11px] text-[#4c5564]">
             Team ID: {fantasyTeamId ? fantasyTeamId.slice(0, 8) : "sin equipo"}
           </p>
-          <Link href="/dashboard/standings" className="link-inline mt-3 inline-flex text-sm">
-            Ver posiciones
+          <Link href="/dashboard/leagues" className="link-inline mt-3 inline-flex text-sm">
+            Gestionar ligas
           </Link>
         </article>
       </section>
@@ -180,7 +194,7 @@ export default async function DashboardPage() {
         ) : (
           <div className="table-shell mt-3">
             <table className="w-full border-collapse text-sm">
-              <thead className="text-[#6b7280]">
+              <thead className="text-[#4c5564]">
                 <tr className="text-left">
                   <th className="px-3 py-2">#</th>
                   <th className="px-3 py-2">Jugador</th>
@@ -191,11 +205,11 @@ export default async function DashboardPage() {
               </thead>
               <tbody>
                 {standings.map((row, index) => (
-                  <tr key={`${row.displayName}-${index}`} className="border-t border-[#eadfbf]">
-                    <td className="px-3 py-2 font-semibold text-[#6b7280]">{index + 1}</td>
+                  <tr key={`${row.displayName}-${index}`} className="border-t border-[#b9a068]">
+                    <td className="px-3 py-2 font-semibold text-[#4c5564]">{index + 1}</td>
                     <td className="px-3 py-2 text-[#1f2937]">{row.displayName}</td>
-                    <td className="px-3 py-2 text-[#6b7280]">{row.fantasy}</td>
-                    <td className="px-3 py-2 text-[#6b7280]">{row.prode}</td>
+                    <td className="px-3 py-2 text-[#4c5564]">{row.fantasy}</td>
+                    <td className="px-3 py-2 text-[#4c5564]">{row.prode}</td>
                     <td className="px-3 py-2 font-semibold text-[#1f2937]">{row.total}</td>
                   </tr>
                 ))}

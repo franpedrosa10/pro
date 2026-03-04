@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { requireUser } from "@/lib/auth";
@@ -52,6 +52,8 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
   if (!leagueResult.data) {
     notFound();
   }
+
+  const invitePath = `/invite/${leagueResult.data.join_code}`;
 
   const matchdaysResult = await supabase
     .from("matchdays")
@@ -171,14 +173,22 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
             <h1 className="mt-2 text-5xl leading-none sm:text-6xl">{leagueResult.data.name}</h1>
             <p className="section-subtitle mt-2 text-sm">
               Codigo de ingreso:{" "}
-              <span className="rounded bg-[#9a6b00] px-2 py-1 font-mono text-xs text-white">
+              <span className="rounded bg-[#1d2430] px-2 py-1 font-mono text-xs text-[#ffe289]">
                 {leagueResult.data.join_code}
               </span>
             </p>
+            <p className="mt-2 text-xs text-[#4c5564]">
+              Link de invitacion: <span className="font-mono">{invitePath}</span>
+            </p>
           </div>
-          <Link href="/dashboard/leagues" className="btn-ghost px-3 py-2 text-sm">
-            Ligas
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href={invitePath} className="btn-ghost px-3 py-2 text-sm">
+              Invitacion
+            </Link>
+            <Link href="/dashboard/leagues" className="btn-ghost px-3 py-2 text-sm">
+              Ligas
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -223,7 +233,7 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
         ) : (
           <div className="table-shell">
             <table className="w-full border-collapse text-sm">
-              <thead className="text-[#6b7280]">
+              <thead className="text-[#4c5564]">
                 <tr className="text-left">
                   <th className="px-3 py-2">#</th>
                   <th className="px-3 py-2">Jugador</th>
@@ -236,17 +246,17 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
                 {rows.map((row, index) => (
                   <tr
                     key={row.userId}
-                    className={`border-t border-[#eadfbf] ${row.userId === user.id ? "bg-[#fff4cf] font-semibold" : ""}`}
+                    className={`border-t border-[#b9a068] ${row.userId === user.id ? "bg-[#fff2c6] font-semibold" : ""}`}
                   >
-                    <td className="px-3 py-2 text-[#6b7280]">{index + 1}</td>
+                    <td className="px-3 py-2 text-[#4c5564]">{index + 1}</td>
                     <td className="px-3 py-2 text-[#1f2937]">
                       {row.displayName}
                       {row.userId === user.id ? (
-                        <span className="ml-2 rounded bg-[#9a6b00] px-1.5 py-0.5 text-[10px] text-white">Vos</span>
+                        <span className="ml-2 rounded bg-[#1d2430] px-1.5 py-0.5 text-[10px] text-[#ffe289]">Vos</span>
                       ) : null}
                     </td>
-                    <td className="px-3 py-2 text-[#6b7280]">{row.fantasy}</td>
-                    <td className="px-3 py-2 text-[#6b7280]">{row.prode}</td>
+                    <td className="px-3 py-2 text-[#4c5564]">{row.fantasy}</td>
+                    <td className="px-3 py-2 text-[#4c5564]">{row.prode}</td>
                     <td className="px-3 py-2 text-[#1f2937]">{row.total}</td>
                   </tr>
                 ))}
@@ -258,3 +268,4 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
     </div>
   );
 }
+
