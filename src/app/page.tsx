@@ -9,8 +9,7 @@ const COPY: Record<
     chip: string;
     title: string;
     subtitle: string;
-    enter: string;
-    goDashboard: string;
+    cta: string;
     cardMatches: string;
     cardMatchesValue: string;
     cardProde: string;
@@ -23,8 +22,7 @@ const COPY: Record<
     chip: "Mundial 2026",
     title: "Prode del Mundial en serio",
     subtitle: "Prediccion por partido, ligas privadas por invitacion y ranking global en una sola plataforma.",
-    enter: "Entrar al juego",
-    goDashboard: "Ir al dashboard",
+    cta: "Comenzar ahora",
     cardMatches: "Partidos",
     cardMatchesValue: "64 pronosticos",
     cardProde: "Prode",
@@ -36,8 +34,7 @@ const COPY: Record<
     chip: "World Cup 2026",
     title: "World Cup predictor",
     subtitle: "Per-match predictions, private leagues and global ranking in one platform.",
-    enter: "Enter game",
-    goDashboard: "Go to dashboard",
+    cta: "Start now",
     cardMatches: "Matches",
     cardMatchesValue: "64 predictions",
     cardProde: "Predictions",
@@ -49,8 +46,7 @@ const COPY: Record<
     chip: "Copa 2026",
     title: "Bolao da Copa de verdade",
     subtitle: "Palpite por partida, ligas privadas e ranking global em uma plataforma.",
-    enter: "Entrar no jogo",
-    goDashboard: "Ir ao painel",
+    cta: "Comecar agora",
     cardMatches: "Partidas",
     cardMatchesValue: "64 palpites",
     cardProde: "Bolao",
@@ -78,11 +74,8 @@ export default async function Home() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Link href="/login" className="btn-primary px-5 py-3 text-sm">
-                {copy.enter}
-              </Link>
-              <Link href="/dashboard" className="btn-ghost px-5 py-3 text-sm">
-                {copy.goDashboard}
+              <Link href="/dashboard" className="btn-primary px-5 py-3 text-sm">
+                {copy.cta}
               </Link>
             </div>
           </div>
