@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 
 import { requireUser } from "@/lib/auth";
 
@@ -7,18 +7,19 @@ export const dynamic = "force-dynamic";
 type StandingsPageProps = {
   searchParams: Promise<{
     matchday?: string | string[];
+    country?: string | string[];
   }>;
 };
 
 type StandingsRow = {
   userId: string;
   displayName: string;
-  fantasy: number;
-  prode: number;
-  total: number;
+  countryCode: string | null;
+  countryName: string | null;
+  points: number;
 };
 
-function parseMatchdayParam(value: string | string[] | undefined): string | null {
+function parseStringParam(value: string | string[] | undefined): string | null {
   if (!value) {
     return null;
   }
@@ -31,9 +32,23 @@ function parseMatchdayParam(value: string | string[] | undefined): string | null
 export default async function StandingsPage({ searchParams }: StandingsPageProps) {
   const { supabase, user } = await requireUser();
   const params = await searchParams;
-  const requestedMatchdayId = parseMatchdayParam(params.matchday);
+  const requestedMatchdayId = parseStringParam(params.matchday);
+  const requestedCountryCode = parseStringParam(params.country)?.toUpperCase() ?? null;
 
   let schemaError: string | null = null;
+
+  const myProfileResult = await supabase
+    .from("profiles")
+    .select("country_code, country_name")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (myProfileResult.error) {
+    schemaError = myProfileResult.error.message;
+  }
+
+  const myCountryCode = (myProfileResult.data?.country_code as string | null | undefined) ?? null;
+  const myCountryName = (myProfileResult.data?.country_name as string | null | undefined) ?? null;
 
   const matchdaysResult = await supabase
     .from("matchdays")
@@ -41,7 +56,7 @@ export default async function StandingsPage({ searchParams }: StandingsPageProps
     .order("order_index", { ascending: true });
 
   if (matchdaysResult.error) {
-    schemaError = matchdaysResult.error.message;
+    schemaError = schemaError ?? matchdaysResult.error.message;
   }
 
   const matchdays =
@@ -54,83 +69,68 @@ export default async function StandingsPage({ searchParams }: StandingsPageProps
   const selectedMatchday =
     matchdays.find((matchday) => matchday.id === requestedMatchdayId) ?? null;
 
-  let rows: StandingsRow[] = [];
+  const profilesResult = await supabase
+    .from("profiles")
+    .select("id, display_name, username, country_code, country_name");
 
-  if (!selectedMatchday) {
-    const totalsResult = await supabase
-      .from("v_global_standings")
-      .select("user_id, display_name, fantasy_points, prode_points, combined_points")
-      .order("combined_points", { ascending: false });
-
-    if (totalsResult.error) {
-      schemaError = schemaError ?? totalsResult.error.message;
-    } else {
-      rows =
-        totalsResult.data?.map((row) => ({
-          userId: row.user_id as string,
-          displayName: row.display_name as string,
-          fantasy: Number(row.fantasy_points ?? 0),
-          prode: Number(row.prode_points ?? 0),
-          total: Number(row.combined_points ?? 0),
-        })) ?? [];
-    }
-  } else {
-    const profilesResult = await supabase
-      .from("profiles")
-      .select("id, display_name, username");
-    const fantasyResult = await supabase
-      .from("v_fantasy_user_matchday_scores")
-      .select("user_id, points")
-      .eq("matchday_id", selectedMatchday.id);
-    const prodeResult = await supabase
-      .from("v_prode_user_matchday_scores")
-      .select("user_id, points")
-      .eq("matchday_id", selectedMatchday.id);
-
-    if (profilesResult.error) {
-      schemaError = schemaError ?? profilesResult.error.message;
-    }
-    if (fantasyResult.error) {
-      schemaError = schemaError ?? fantasyResult.error.message;
-    }
-    if (prodeResult.error) {
-      schemaError = schemaError ?? prodeResult.error.message;
-    }
-
-    const nameByUserId = new Map<string, string>();
-    (profilesResult.data ?? []).forEach((profile) => {
-      const displayName =
-        (profile.display_name as string | null) ||
-        (profile.username as string | null) ||
-        "Jugador";
-      nameByUserId.set(profile.id as string, displayName);
-    });
-
-    const fantasyByUserId = new Map<string, number>();
-    (fantasyResult.data ?? []).forEach((row) => {
-      fantasyByUserId.set(row.user_id as string, Number(row.points ?? 0));
-    });
-
-    const prodeByUserId = new Map<string, number>();
-    (prodeResult.data ?? []).forEach((row) => {
-      prodeByUserId.set(row.user_id as string, Number(row.points ?? 0));
-    });
-
-    rows = Array.from(nameByUserId.entries())
-      .map(([userId, displayName]) => {
-        const fantasy = fantasyByUserId.get(userId) ?? 0;
-        const prode = prodeByUserId.get(userId) ?? 0;
-        return {
-          userId,
-          displayName,
-          fantasy,
-          prode,
-          total: fantasy + prode,
-        };
-      })
-      .filter((row) => row.total > 0)
-      .sort((a, b) => b.total - a.total || b.fantasy - a.fantasy || b.prode - a.prode);
+  if (profilesResult.error) {
+    schemaError = schemaError ?? profilesResult.error.message;
   }
+
+  const pointsResult = selectedMatchday
+    ? await supabase
+        .from("v_prode_user_matchday_scores")
+        .select("user_id, points")
+        .eq("matchday_id", selectedMatchday.id)
+    : await supabase
+        .from("v_prode_user_totals")
+        .select("user_id, points");
+
+  if (pointsResult.error) {
+    schemaError = schemaError ?? pointsResult.error.message;
+  }
+
+  const pointsByUserId = new Map<string, number>();
+  (pointsResult.data ?? []).forEach((row) => {
+    pointsByUserId.set(row.user_id as string, Number(row.points ?? 0));
+  });
+
+  const countryOptions = Array.from(
+    new Map(
+      (profilesResult.data ?? [])
+        .map((profile) => ({
+          code: (profile.country_code as string | null) ?? null,
+          name: (profile.country_name as string | null) ?? null,
+        }))
+        .filter((country) => country.code && country.name)
+        .map((country) => [country.code as string, country.name as string]),
+    ).entries(),
+  )
+    .map(([code, name]) => ({ code, name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const rows: StandingsRow[] = (profilesResult.data ?? [])
+    .map((profile) => {
+      const userId = profile.id as string;
+      return {
+        userId,
+        displayName:
+          (profile.display_name as string | null) ||
+          (profile.username as string | null) ||
+          "Jugador",
+        countryCode: (profile.country_code as string | null) ?? null,
+        countryName: (profile.country_name as string | null) ?? null,
+        points: pointsByUserId.get(userId) ?? 0,
+      };
+    })
+    .filter((row) => row.points > 0)
+    .filter((row) => {
+      if (!requestedCountryCode) {
+        return true;
+      }
+      return row.countryCode === requestedCountryCode;
+    })
+    .sort((a, b) => b.points - a.points);
 
   return (
     <div className="fade-in space-y-4">
@@ -138,7 +138,7 @@ export default async function StandingsPage({ searchParams }: StandingsPageProps
         <div className="flex items-center justify-between gap-2">
           <div>
             <p className="chip w-fit">Resultados globales</p>
-            <h1 className="mt-2 text-5xl leading-none sm:text-6xl">Ranking global</h1>
+            <h1 className="mt-2 text-5xl leading-none sm:text-6xl">Ranking Prode</h1>
           </div>
           <Link href="/dashboard" className="btn-ghost px-3 py-2 text-sm">
             Resumen
@@ -160,11 +160,28 @@ export default async function StandingsPage({ searchParams }: StandingsPageProps
             </select>
           </label>
 
+          <label className="space-y-1 text-sm">
+            <span className="label-tech block">Pais</span>
+            <select name="country" defaultValue={requestedCountryCode ?? ""} className="select-tech">
+              <option value="">Todos los paises</option>
+              {myCountryCode ? (
+                <option value={myCountryCode}>
+                  Mi pais ({myCountryName ?? myCountryCode})
+                </option>
+              ) : null}
+              {countryOptions.filter((country) => country.code !== myCountryCode).map((country) => (
+                <option key={country.code} value={country.code}>
+                  {country.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <button type="submit" className="btn-primary px-3 py-2 text-sm">
             Aplicar
           </button>
 
-          {selectedMatchday ? (
+          {(selectedMatchday || requestedCountryCode) ? (
             <Link href="/dashboard/standings" className="btn-ghost px-3 py-2 text-sm">
               Limpiar
             </Link>
@@ -174,7 +191,8 @@ export default async function StandingsPage({ searchParams }: StandingsPageProps
         <p className="section-subtitle mt-3 text-sm">
           Mostrando:{" "}
           <span className="font-semibold text-[#1f2937]">
-            {selectedMatchday ? `${selectedMatchday.name} (Fantasy + Prode)` : "Acumulado general"}
+            {selectedMatchday ? selectedMatchday.name : "Acumulado general"}
+            {requestedCountryCode ? ` | Pais ${requestedCountryCode}` : ""}
           </span>
         </p>
       </section>
@@ -191,9 +209,8 @@ export default async function StandingsPage({ searchParams }: StandingsPageProps
                 <tr className="text-left">
                   <th className="px-3 py-2">#</th>
                   <th className="px-3 py-2">Jugador</th>
-                  <th className="px-3 py-2">Fantasy</th>
-                  <th className="px-3 py-2">Prode</th>
-                  <th className="px-3 py-2">Total</th>
+                  <th className="px-3 py-2">Pais</th>
+                  <th className="px-3 py-2">Puntos</th>
                 </tr>
               </thead>
               <tbody>
@@ -209,9 +226,8 @@ export default async function StandingsPage({ searchParams }: StandingsPageProps
                         <span className="ml-2 rounded bg-[#1d2430] px-1.5 py-0.5 text-[10px] text-[#ffe289]">Vos</span>
                       ) : null}
                     </td>
-                    <td className="px-3 py-2 text-[#4c5564]">{row.fantasy}</td>
-                    <td className="px-3 py-2 text-[#4c5564]">{row.prode}</td>
-                    <td className="px-3 py-2 text-[#1f2937]">{row.total}</td>
+                    <td className="px-3 py-2 text-[#4c5564]">{row.countryName ?? "-"}</td>
+                    <td className="px-3 py-2 text-[#1f2937]">{row.points}</td>
                   </tr>
                 ))}
               </tbody>
@@ -222,5 +238,3 @@ export default async function StandingsPage({ searchParams }: StandingsPageProps
     </div>
   );
 }
-
-

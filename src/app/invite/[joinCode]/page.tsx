@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -109,7 +109,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
           <p className="mt-4 text-sm text-[#2f3a49]">
             {row.already_member
               ? "Ya estabas en esta liga. Te llevamos directo a la tabla privada."
-              : "Listo, ya te unimos a la liga privada. Ahora podes competir en Fantasy + Prode."}
+              : "Listo, ya te unimos a la liga privada. Ahora podes competir en Prode."}
           </p>
 
           <div className="mt-5 flex flex-wrap gap-2">

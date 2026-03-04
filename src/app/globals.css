@@ -65,7 +65,7 @@ h4 {
 
 .app-container {
   margin-inline: auto;
-  max-width: 1180px;
+  max-width: 1080px;
 }
 
 .panel {
@@ -263,6 +263,12 @@ h4 {
   padding: 1rem;
 }
 
+.kpi-card-stack {
+  display: flex;
+  flex-direction: column;
+  min-height: 176px;
+}
+
 .kpi-label {
   color: #654f17;
   font-size: 0.73rem;
@@ -292,6 +298,11 @@ h4 {
 
 .link-inline:hover {
   color: #4e3600;
+}
+
+.kpi-cta {
+  margin-top: auto;
+  padding-top: 0.9rem;
 }
 
 .table-shell {

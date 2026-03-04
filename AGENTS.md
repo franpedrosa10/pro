@@ -2,68 +2,56 @@
 
 ## Proyecto
 
-Repositorio de **Fantasy + Prode Mundial 2026** con:
+Repositorio de **Prode Mundial 2026** con:
 
 - `Next.js` App Router + TypeScript
 - `Supabase` (Postgres + Auth + RLS)
 - `Tailwind CSS`
 
-Producto objetivo:
+Direccion de producto actual:
 
-1. Modo Fantasy (plantel estilo Gran DT)
-2. Modo Prode (resultados por partido)
-3. Ligas privadas y ranking global combinado
+1. Prode por partido (core)
+2. Ligas privadas (social)
+3. Ranking global + ranking por pais
 
 ## Estado funcional actual
 
 - Auth: email/password + Google OAuth.
-- Registro por email requiere: `nombre`, `apellido`, `telefono`.
-- Dashboard privado con navbar fijo:
+- Registro por email requiere: `nombre`, `apellido`, `telefono`, `pais`.
+- Dashboard privado con navbar:
   - `prode`
-  - `mi equipo`
   - `ligas`
   - `resultados globales`
   - `mi cuenta`
-- Squad builder:
-  - Formaciones: `3-4-3`, `3-5-2`, `4-3-3`, `4-4-2`
-  - Max 15 jugadores
-  - 11 titulares + 4 suplentes
-  - 1 suplente por posicion
-  - Capitan solo titular
-  - Filtros por posicion/equipo/puntaje
+  - selector de idioma (`es`, `en`, `pt`) con estilo uniforme al navbar
 - Prode:
   - Edicion permitida solo antes del kickoff
-  - Guardado batch por API
+  - Guardado batch por API (`PUT /api/prode/predictions`)
+  - UI por fecha (selector de matchday) con opcion de vista completa
+  - Guardado por fecha actual y guardado global
 - Ligas privadas:
   - Crear liga
   - Unirse por codigo
   - Compartir invitacion por link
+  - Unirse a liga oficial por pais (auto-create + auto-join)
   - Ruta de invitacion: `/invite/[joinCode]`
+- Resultados:
+  - Ranking Prode global
+  - Ranking por fecha
+  - Filtro por pais (liga por pais)
+  - home dashboard en 2 columnas para tablas global/pais (desktop)
+- Footer global:
+  - copyright
+  - credito con link a portfolio de Francisco Pedrosa
+- i18n:
+  - textos base en `es`, `en`, `pt`
+  - aplicado en navbar, home, login, dashboard, prode, ligas, cuenta y componentes de formulario
 
-## Feature nueva: invitacion por link
+## Nota sobre Fantasy
 
-### Frontend
-
-- `LeagueManager` muestra:
-  - Link de invitacion por liga
-  - Boton `Copiar codigo`
-  - Boton `Copiar link`
-  - Boton `Compartir` (Web Share API con fallback a copiar)
-  - Boton `WhatsApp`
-- Ruta `src/app/invite/[joinCode]/page.tsx`:
-  - Si no hay sesion: redirect a login preservando `next`
-  - Si hay sesion: auto-join de liga usando RPC
-  - Si ya era miembro: mensaje y acceso directo a tabla
-
-### Backend/DB
-
-- `POST /api/leagues/join` ahora usa RPC segura `join_league_with_code`.
-- `PUT /api/squad` ahora persiste con RPC transaccional `replace_fantasy_team_players` para evitar estados intermedios si falla una validacion.
-- En `supabase/schema.sql` existe:
-  - `public.join_league_with_code(p_join_code text)`
-  - `public.replace_fantasy_team_players(p_team_id uuid, p_players jsonb)`
-  - `security definer`
-  - `grant execute ... to authenticated`
+- El codigo legacy de Fantasy sigue en el repo por compatibilidad tecnica.
+- El producto activo es Prode-first: no exponer Fantasy en UX principal.
+- No invertir tiempo en funcionalidades Fantasy salvo pedido explicito.
 
 ## Fuente de verdad DB
 
@@ -71,41 +59,37 @@ Usar siempre `supabase/schema.sql`.
 
 Incluye:
 
-- Enums (`player_position`, `squad_slot`, `fixture_status`)
-- Tablas core (`profiles`, `players`, `fixtures`, `fantasy_teams`, `prode_predictions`, etc.)
-- Triggers de integridad (`validate_fantasy_team_state`, `prevent_late_predictions`)
-- Vistas scoring/standings (`v_global_standings`, `v_league_standings`)
-- Funciones auxiliares RLS (`is_league_member`, `is_league_owner`)
-- Funciones operativas (`join_league_with_code`, `replace_fantasy_team_players`)
+- Tablas core (`profiles`, `fixtures`, `prode_predictions`, `leagues`, `league_members`, etc.)
+- Triggers de integridad de Prode (`prevent_late_predictions`)
+- Vistas de scoring (`v_prode_user_fixture_points`, `v_prode_user_matchday_scores`, `v_prode_user_totals`)
+- Vistas agregadas (`v_global_standings`, `v_league_standings`)
+- Funciones de ligas (`join_league_with_code`, `join_country_league`)
 - Policies RLS completas
+- Dataset base del Mundial 2026:
+  - Equipos reales + placeholders de repechaje y llaves
+  - 8 matchdays (3 de grupos + eliminatorias)
+  - 104 fixtures cargados de forma idempotente
 
-## Benchmark competitivo (Gran DT / FPL / Fantasy globales)
+## Cambios de pais en perfil
 
-Funcionalidades observadas para diferenciar producto y mejorar retencion:
-
-1. Ventanas de transferencias por fecha con cupo limitado.
-2. Chips/boosters por torneo (capitan x3, comodin, banco activo).
-3. Historial de movimientos con feed de liga (altas/bajas/capitanes).
-4. Mini ligas H2H semanales aparte del ranking acumulado.
-5. Premios por hitos (racha de aciertos, top fecha, prediccion exacta).
-6. Notificaciones previas al cierre y post-publicacion de puntos.
-
-Priorizacion sugerida:
-
-1. Ventanas de transferencia + historial (alto impacto y costo medio).
-2. H2H semanal en ligas privadas (alto impacto social).
-3. Chips limitados por torneo (diferenciacion fuerte).
-4. Notificaciones y premios (retencion).
+- `profiles` contiene:
+  - `country_code` (ISO2)
+  - `country_name`
+- `handle_new_user` levanta estos campos desde metadata de signup.
+- `PUT /api/profile` actualiza pais + metadata del usuario.
 
 ## Endpoints vigentes
 
 - `POST /api/leagues`
 - `POST /api/leagues/join`
-- `PUT /api/squad`
+- `POST /api/leagues/country`
+- `POST /api/locale`
 - `PUT /api/prode/predictions`
 - `PUT /api/profile`
 
-No romper contratos sin migrar frontend.
+Endpoint legacy (no promocionado en UX):
+
+- `PUT /api/squad`
 
 ## Setup rapido
 
@@ -117,66 +101,34 @@ No romper contratos sin migrar frontend.
    - `NEXT_PUBLIC_SITE_URL`
 4. Ejecutar en Supabase SQL Editor:
    - `supabase/schema.sql`
-   - opcional: `supabase/seed.sql`
+   - si ya tenes DB creada y falla `league_id is ambiguous`: correr `supabase/hotfix_join_league_ambiguous.sql`
+   - `supabase/seed.sql` es opcional solo para datos demo legacy
 5. `npm run dev`
 
-## OAuth Google (errores tipicos)
+## OAuth Google
 
-Si aparece `Unsupported provider: provider is not enabled`:
+Si aparece `Unsupported provider: provider is not enabled` o `redirect_uri_mismatch`:
 
-1. Activar Google en `Authentication -> Providers -> Google`.
-2. Cargar `Client ID` y `Client Secret`.
-3. En Google Cloud agregar redirect URI:
-   - `https://<PROJECT_REF>.supabase.co/auth/v1/callback`
-4. En `Authentication -> URL Configuration`:
-   - Site URL (ej. `http://localhost:3000`)
-   - Redirect URL (`http://localhost:3000/auth/callback`)
+1. Supabase -> Authentication -> Providers -> Google:
+   - Enable provider
+   - Client ID + Client Secret
+2. Google Cloud OAuth client (Web):
+   - Authorized redirect URI:
+     - `https://<PROJECT_REF>.supabase.co/auth/v1/callback`
+3. Supabase -> Authentication -> URL Configuration:
+   - Site URL: `http://localhost:3000`
+   - Redirect URL: `http://localhost:3000/auth/callback`
 
-## Direccion de diseño actual
+## Reglas para futuros agentes
 
-- Tema de alto contraste, deportivo/editorial, no genérico.
-- Base visual:
-  - fondo crema
-  - acento amarillo fuerte
-  - bordes negros marcados
-  - sombras offset tipo sticker/card game
-- Tipografias:
-  - Body: `Manrope`
-  - Display: `Barlow Condensed`
-
-## Checklist para “salir a produ”
-
-1. Observabilidad:
-   - Error tracking (Sentry)
-   - Logging estructurado en APIs
-2. Seguridad:
-   - Revisar todas las policies RLS con casos reales
-   - Rate limit en endpoints de join/create
-3. Datos:
-   - Pipeline admin para resultados/puntajes/precios
-   - Jobs de recálculo por fecha
-4. Calidad:
-   - Tests en `rules.ts`
-   - Tests API (join, squad, prode)
-5. UX:
-   - Loading/empty/error states más finos
-   - Confirmaciones contextuales y toasts
-
-## Prioridad de roadmap (corto plazo)
-
-1. Transferencias por ventana (limitadas por fecha)
-2. Historial de puntos por fecha y por jugador
-3. Feed social de liga (movimientos/capitán/top de fecha)
-4. Penalizaciones por no completar XI antes del cierre
-5. Notificaciones de cierre de fecha y resultados publicados
-
-## Regla para próximos agentes
-
-- Mantener coherencia entre lógica de frontend, validación API y constraints SQL.
-- No remover RLS ni funciones security definer existentes.
-- Si cambian reglas de juego, actualizar en 3 capas:
-  - `src/lib/domain/rules.ts`
-  - endpoints API
+- Mantener consistencia entre:
+  - validaciones frontend
+  - validaciones API
+  - constraints/funciones SQL
+- No remover RLS.
+- Si se agregan tablas nuevas, agregar policies.
+- Si se cambian reglas de Prode o ranking por pais, actualizar:
+  - consultas en `src/app/dashboard/*`
+  - `src/app/api/*`
   - `supabase/schema.sql`
 - Antes de cerrar cambios: correr `npm run lint` y `npm run build`.
-

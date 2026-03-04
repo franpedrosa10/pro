@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { requireUser } from "@/lib/auth";
@@ -17,9 +17,8 @@ type LeagueStandingsPageProps = {
 type LeagueRow = {
   userId: string;
   displayName: string;
-  fantasy: number;
-  prode: number;
-  total: number;
+  countryName: string | null;
+  points: number;
 };
 
 function parseMatchdayParam(value: string | string[] | undefined): string | null {
@@ -79,26 +78,43 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
   if (!selectedMatchday) {
     const totalsResult = await supabase
       .from("v_league_standings")
-      .select("user_id, display_name, fantasy_points, prode_points, combined_points")
+      .select("user_id, display_name, prode_points")
       .eq("league_id", leagueId)
-      .order("combined_points", { ascending: false });
+      .order("prode_points", { ascending: false });
 
     if (totalsResult.error) {
       schemaError = schemaError ?? totalsResult.error.message;
     } else {
+      const memberIds = (totalsResult.data ?? []).map((row) => row.user_id as string);
+      const countriesResult =
+        memberIds.length === 0
+          ? { data: [] as Array<{ id: string; country_name: string | null }>, error: null }
+          : await supabase
+              .from("profiles")
+              .select("id, country_name")
+              .in("id", memberIds);
+
+      if (countriesResult.error) {
+        schemaError = schemaError ?? countriesResult.error.message;
+      }
+
+      const countryByUserId = new Map<string, string | null>();
+      (countriesResult.data ?? []).forEach((profile) => {
+        countryByUserId.set(profile.id as string, (profile.country_name as string | null) ?? null);
+      });
+
       rows =
         totalsResult.data?.map((row) => ({
           userId: row.user_id as string,
           displayName: row.display_name as string,
-          fantasy: Number(row.fantasy_points ?? 0),
-          prode: Number(row.prode_points ?? 0),
-          total: Number(row.combined_points ?? 0),
+          countryName: countryByUserId.get(row.user_id as string) ?? null,
+          points: Number(row.prode_points ?? 0),
         })) ?? [];
     }
   } else {
     const membersResult = await supabase
       .from("league_members")
-      .select("user_id, profiles(display_name, username)")
+      .select("user_id, profiles(display_name, username, country_name)")
       .eq("league_id", leagueId);
 
     if (membersResult.error) {
@@ -106,15 +122,6 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
     }
 
     const memberUserIds = (membersResult.data ?? []).map((row) => row.user_id as string);
-
-    const fantasyResult =
-      memberUserIds.length === 0
-        ? { data: [] as Array<{ user_id: string; points: number }>, error: null }
-        : await supabase
-            .from("v_fantasy_user_matchday_scores")
-            .select("user_id, points")
-            .eq("matchday_id", selectedMatchday.id)
-            .in("user_id", memberUserIds);
 
     const prodeResult =
       memberUserIds.length === 0
@@ -125,23 +132,18 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
             .eq("matchday_id", selectedMatchday.id)
             .in("user_id", memberUserIds);
 
-    if (fantasyResult.error) {
-      schemaError = schemaError ?? fantasyResult.error.message;
-    }
     if (prodeResult.error) {
       schemaError = schemaError ?? prodeResult.error.message;
     }
 
-    const nameByUserId = new Map<string, string>();
+    const profileByUserId = new Map<string, { displayName: string; countryName: string | null }>();
     (membersResult.data ?? []).forEach((row) => {
-      const profile = row.profiles as { display_name?: string | null; username?: string | null } | null;
+      const profile = row.profiles as { display_name?: string | null; username?: string | null; country_name?: string | null } | null;
       const displayName = profile?.display_name || profile?.username || "Jugador";
-      nameByUserId.set(row.user_id as string, displayName);
-    });
-
-    const fantasyByUserId = new Map<string, number>();
-    (fantasyResult.data ?? []).forEach((row) => {
-      fantasyByUserId.set(row.user_id as string, Number(row.points ?? 0));
+      profileByUserId.set(row.user_id as string, {
+        displayName,
+        countryName: profile?.country_name ?? null,
+      });
     });
 
     const prodeByUserId = new Map<string, number>();
@@ -149,19 +151,17 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
       prodeByUserId.set(row.user_id as string, Number(row.points ?? 0));
     });
 
-    rows = Array.from(nameByUserId.entries())
-      .map(([userId, displayName]) => {
-        const fantasy = fantasyByUserId.get(userId) ?? 0;
-        const prode = prodeByUserId.get(userId) ?? 0;
+    rows = Array.from(profileByUserId.entries())
+      .map(([userId, profile]) => {
+        const points = prodeByUserId.get(userId) ?? 0;
         return {
           userId,
-          displayName,
-          fantasy,
-          prode,
-          total: fantasy + prode,
+          displayName: profile.displayName,
+          countryName: profile.countryName,
+          points,
         };
       })
-      .sort((a, b) => b.total - a.total || b.fantasy - a.fantasy || b.prode - a.prode);
+      .sort((a, b) => b.points - a.points);
   }
 
   return (
@@ -220,7 +220,7 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
         <p className="section-subtitle mt-3 text-sm">
           Mostrando:{" "}
           <span className="font-semibold text-[#1f2937]">
-            {selectedMatchday ? `${selectedMatchday.name} (Fantasy + Prode)` : "Acumulado general"}
+            {selectedMatchday ? `${selectedMatchday.name} (Prode)` : "Acumulado general Prode"}
           </span>
         </p>
       </section>
@@ -237,9 +237,8 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
                 <tr className="text-left">
                   <th className="px-3 py-2">#</th>
                   <th className="px-3 py-2">Jugador</th>
-                  <th className="px-3 py-2">Fantasy</th>
-                  <th className="px-3 py-2">Prode</th>
-                  <th className="px-3 py-2">Total</th>
+                  <th className="px-3 py-2">Pais</th>
+                  <th className="px-3 py-2">Puntos</th>
                 </tr>
               </thead>
               <tbody>
@@ -255,9 +254,8 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
                         <span className="ml-2 rounded bg-[#1d2430] px-1.5 py-0.5 text-[10px] text-[#ffe289]">Vos</span>
                       ) : null}
                     </td>
-                    <td className="px-3 py-2 text-[#4c5564]">{row.fantasy}</td>
-                    <td className="px-3 py-2 text-[#4c5564]">{row.prode}</td>
-                    <td className="px-3 py-2 text-[#1f2937]">{row.total}</td>
+                    <td className="px-3 py-2 text-[#4c5564]">{row.countryName ?? "-"}</td>
+                    <td className="px-3 py-2 text-[#1f2937]">{row.points}</td>
                   </tr>
                 ))}
               </tbody>

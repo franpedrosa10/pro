@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { getCountryNameByCode } from "@/lib/domain/countries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const profileSchema = z.object({
   firstName: z.string().trim().min(2).max(60),
   lastName: z.string().trim().min(2).max(60),
   phone: z.string().trim().min(6).max(25),
+  countryCode: z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/),
 });
 
 export async function PUT(request: Request) {
@@ -28,17 +30,26 @@ export async function PUT(request: Request) {
   const firstName = parseResult.data.firstName;
   const lastName = parseResult.data.lastName;
   const phone = parseResult.data.phone.replace(/\s+/g, "");
+  const countryCode = parseResult.data.countryCode;
+  const countryName = getCountryNameByCode(countryCode);
+  if (!countryName) {
+    return NextResponse.json({ error: "Pais invalido." }, { status: 400 });
+  }
   const displayName = `${firstName} ${lastName}`.trim();
 
   const profileResult = await supabase
     .from("profiles")
-    .update({
+    .upsert({
+      id: user.id,
       first_name: firstName,
       last_name: lastName,
       phone,
+      country_code: countryCode,
+      country_name: countryName,
       display_name: displayName,
-    })
-    .eq("id", user.id);
+    }, { onConflict: "id" })
+    .select("id")
+    .single();
 
   if (profileResult.error) {
     return NextResponse.json({ error: profileResult.error.message }, { status: 400 });
@@ -49,6 +60,8 @@ export async function PUT(request: Request) {
       first_name: firstName,
       last_name: lastName,
       phone,
+      country_code: countryCode,
+      country_name: countryName,
       display_name: displayName,
     },
   });

@@ -1,18 +1,22 @@
 type RouteLoaderProps = {
   title?: string;
   subtitle?: string;
+  chipLabel?: string;
+  nextPlayLabel?: string;
   compact?: boolean;
 };
 
 export function RouteLoader({
   title = "Estamos preparando la proxima pantalla",
   subtitle = "Sincronizando datos de tu competencia...",
+  chipLabel = "Cargando",
+  nextPlayLabel = "Entrando a la proxima jugada...",
   compact = false,
 }: RouteLoaderProps) {
   return (
     <section className={`panel route-loader ${compact ? "p-4 sm:p-5" : "p-5 sm:p-7"}`}>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="chip">Cargando</span>
+        <span className="chip">{chipLabel}</span>
         <div className="route-loader-dots" aria-hidden>
           <span />
           <span />
@@ -36,7 +40,7 @@ export function RouteLoader({
       </div>
 
       <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#6d5a2a]">
-        Entrando a la proxima jugada...
+        {nextPlayLabel}
       </p>
     </section>
   );

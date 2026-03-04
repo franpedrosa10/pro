@@ -7,9 +7,13 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type SignOutButtonProps = {
   className?: string;
+  labels?: {
+    idle: string;
+    pending: string;
+  };
 };
 
-export function SignOutButton({ className }: SignOutButtonProps) {
+export function SignOutButton({ className, labels }: SignOutButtonProps) {
   const [isPending, setIsPending] = useState(false);
   const router = useRouter();
 
@@ -29,7 +33,7 @@ export function SignOutButton({ className }: SignOutButtonProps) {
       disabled={isPending}
       className={`btn-ghost px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60 ${className ?? ""}`}
     >
-      {isPending ? "Saliendo..." : "Salir"}
+      {isPending ? labels?.pending ?? "Saliendo..." : labels?.idle ?? "Salir"}
     </button>
   );
 }

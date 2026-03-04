@@ -1,11 +1,12 @@
-# Fantasy + Prode Mundial 2026
+# Prode Mundial 2026
 
-MVP fullstack con `Next.js + Supabase` para competir en dos modos en paralelo:
+MVP fullstack con `Next.js + Supabase` para competir en Prode durante todo el Mundial:
 
-- Fantasy estilo Gran DT (presupuesto, formaciones, capitan, suplentes por posicion)
-- Prode por partido (marcadores antes del kickoff)
-- Ligas privadas por codigo e invitacion por link
-- Ranking global y por fecha (Fantasy + Prode)
+- Predicciones por partido (editable solo antes del kickoff)
+- Ligas privadas con codigo + link de invitacion
+- Liga oficial por pais (union en 1 click)
+- Ranking global, por fecha y por pais
+- Registro completo con pais obligatorio
 
 ## Stack
 
@@ -46,7 +47,7 @@ npm run dev
 
 ## Google OAuth
 
-Si aparece `Unsupported provider: provider is not enabled`:
+Si aparece `Unsupported provider: provider is not enabled` o `redirect_uri_mismatch`:
 
 1. En Supabase: `Authentication -> Providers -> Google`, habilitar provider
 2. Cargar `Client ID` y `Client Secret`
@@ -62,11 +63,7 @@ Si aparece `Unsupported provider: provider is not enabled`:
 - Ruta de invitacion: `/invite/[joinCode]`
 - Si el usuario no tiene sesion, se redirige a login y luego vuelve al link
 - El join se resuelve por RPC segura en DB: `join_league_with_code`
-
-## Integridad de plantel
-
-- El guardado de `Mi Equipo` usa RPC transaccional: `replace_fantasy_team_players`
-- Si una validacion falla en DB, no queda el plantel en estado parcial
+- Liga oficial por pais: API `POST /api/leagues/country` (crea si no existe y une al usuario)
 
 ## Scripts
 
@@ -87,8 +84,7 @@ Si aparece `Unsupported provider: provider is not enabled`:
 ## Estado actual
 
 - Auth email/password + Google
-- Squad builder visual completo
+- Perfil con nombre, apellido, telefono y pais
 - Prode por partido con lock por kickoff
 - Ligas privadas + invitacion por link
-- Rankings globales y por liga
-
+- Ranking global, por fecha y por pais

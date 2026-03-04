@@ -1,13 +1,16 @@
-﻿"use client";
+"use client";
 
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { COUNTRIES, getCountryNameByCode } from "@/lib/domain/countries";
+import type { AppLocale } from "@/lib/i18n";
 
 type AuthMode = "login" | "signup";
 
 type AuthFormProps = {
+  locale: AppLocale;
   nextPath?: string;
   initialError?: string | null;
 };
@@ -66,11 +69,126 @@ function getSupabaseGoogleCallbackUrl() {
   }
 }
 
-export function AuthForm({ nextPath = "/dashboard", initialError = null }: AuthFormProps) {
+const COPY: Record<
+  AppLocale,
+  {
+    chip: string;
+    title: string;
+    subtitle: string;
+    tabLogin: string;
+    tabSignup: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    country: string;
+    email: string;
+    password: string;
+    requiredSignup: string;
+    invalidCountry: string;
+    signupInbox: string;
+    submitPending: string;
+    submitLogin: string;
+    submitSignup: string;
+    or: string;
+    continueGoogle: string;
+    redirectGoogle: string;
+    googleHint: string;
+    googleChecklist: string;
+    providerDisabled: string;
+    redirectMismatch: string;
+    invalidCredentials: string;
+  }
+> = {
+  es: {
+    chip: "Acceso",
+    title: "Login y registro",
+    subtitle: "Entra con email/password o Google OAuth.",
+    tabLogin: "Entrar",
+    tabSignup: "Crear cuenta",
+    firstName: "Nombre",
+    lastName: "Apellido",
+    phone: "Telefono",
+    country: "Pais",
+    email: "Email",
+    password: "Password",
+    requiredSignup: "Nombre, apellido, telefono y pais son obligatorios.",
+    invalidCountry: "Selecciona un pais valido.",
+    signupInbox: "Cuenta creada. Si tenes confirmacion por mail activa, revisa tu inbox.",
+    submitPending: "Procesando...",
+    submitLogin: "Entrar",
+    submitSignup: "Crear cuenta",
+    or: "o",
+    continueGoogle: "Continuar con Google",
+    redirectGoogle: "Redirigiendo a Google...",
+    googleHint: "Si falla Google, revisa providers y redirect URLs en Supabase.",
+    googleChecklist: "Checklist Google OAuth",
+    providerDisabled: "Google no esta habilitado en Supabase.",
+    redirectMismatch: "La URL de redireccion de OAuth no esta permitida.",
+    invalidCredentials: "Google esta habilitado pero hay un problema de credenciales (Client ID / Secret).",
+  },
+  en: {
+    chip: "Access",
+    title: "Login and signup",
+    subtitle: "Sign in with email/password or Google OAuth.",
+    tabLogin: "Login",
+    tabSignup: "Create account",
+    firstName: "First name",
+    lastName: "Last name",
+    phone: "Phone",
+    country: "Country",
+    email: "Email",
+    password: "Password",
+    requiredSignup: "First name, last name, phone and country are required.",
+    invalidCountry: "Select a valid country.",
+    signupInbox: "Account created. Check your inbox if email confirmation is enabled.",
+    submitPending: "Processing...",
+    submitLogin: "Login",
+    submitSignup: "Create account",
+    or: "or",
+    continueGoogle: "Continue with Google",
+    redirectGoogle: "Redirecting to Google...",
+    googleHint: "If Google fails, verify providers and redirect URLs in Supabase.",
+    googleChecklist: "Google OAuth checklist",
+    providerDisabled: "Google provider is not enabled in Supabase.",
+    redirectMismatch: "OAuth redirect URL is not allowed.",
+    invalidCredentials: "Google is enabled but credentials are invalid (Client ID/Secret).",
+  },
+  pt: {
+    chip: "Acesso",
+    title: "Login e cadastro",
+    subtitle: "Entre com email/password ou Google OAuth.",
+    tabLogin: "Entrar",
+    tabSignup: "Criar conta",
+    firstName: "Nome",
+    lastName: "Sobrenome",
+    phone: "Telefone",
+    country: "Pais",
+    email: "Email",
+    password: "Senha",
+    requiredSignup: "Nome, sobrenome, telefone e pais sao obrigatorios.",
+    invalidCountry: "Selecione um pais valido.",
+    signupInbox: "Conta criada. Verifique seu email se confirmacao estiver ativa.",
+    submitPending: "Processando...",
+    submitLogin: "Entrar",
+    submitSignup: "Criar conta",
+    or: "ou",
+    continueGoogle: "Continuar com Google",
+    redirectGoogle: "Redirecionando para Google...",
+    googleHint: "Se Google falhar, revise providers e redirect URLs no Supabase.",
+    googleChecklist: "Checklist Google OAuth",
+    providerDisabled: "Google nao esta habilitado no Supabase.",
+    redirectMismatch: "URL de redirecionamento OAuth nao permitida.",
+    invalidCredentials: "Google esta ativo, mas credenciais invalidas (Client ID/Secret).",
+  },
+};
+
+export function AuthForm({ locale, nextPath = "/dashboard", initialError = null }: AuthFormProps) {
+  const copy = COPY[locale];
   const [mode, setMode] = useState<AuthMode>("login");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
+  const [countryCode, setCountryCode] = useState("AR");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(initialError);
@@ -94,9 +212,17 @@ export function AuthForm({ nextPath = "/dashboard", initialError = null }: AuthF
     const supabase = createSupabaseBrowserClient();
 
     if (mode === "signup") {
-      if (!firstName.trim() || !lastName.trim() || !phone.trim()) {
+      if (!firstName.trim() || !lastName.trim() || !phone.trim() || !countryCode.trim()) {
         setIsPending(false);
-        setError("Nombre, apellido y telefono son obligatorios.");
+        setError(copy.requiredSignup);
+        return;
+      }
+
+      const normalizedCountryCode = countryCode.trim().toUpperCase();
+      const countryName = getCountryNameByCode(normalizedCountryCode);
+      if (!countryName) {
+        setIsPending(false);
+        setError(copy.invalidCountry);
         return;
       }
 
@@ -109,6 +235,8 @@ export function AuthForm({ nextPath = "/dashboard", initialError = null }: AuthF
             first_name: firstName.trim(),
             last_name: lastName.trim(),
             phone: normalizedPhone,
+            country_code: normalizedCountryCode,
+            country_name: countryName,
             display_name: `${firstName.trim()} ${lastName.trim()}`.trim(),
           },
         },
@@ -123,9 +251,10 @@ export function AuthForm({ nextPath = "/dashboard", initialError = null }: AuthF
       setFirstName("");
       setLastName("");
       setPhone("");
+      setCountryCode("AR");
 
       if (!data.session) {
-        setInfo("Cuenta creada. Si tenes confirmacion por mail activa, revisa tu inbox.");
+        setInfo(copy.signupInbox);
         return;
       }
 
@@ -175,17 +304,17 @@ export function AuthForm({ nextPath = "/dashboard", initialError = null }: AuthF
       setGoogleIssue(issue);
 
       if (issue === "provider_disabled") {
-        setError("Google no esta habilitado en Supabase.");
+        setError(copy.providerDisabled);
         return;
       }
 
       if (issue === "redirect_mismatch") {
-        setError("La URL de redireccion de OAuth no esta permitida.");
+        setError(copy.redirectMismatch);
         return;
       }
 
       if (issue === "invalid_credentials") {
-        setError("Google esta habilitado pero hay un problema de credenciales (Client ID / Secret).");
+        setError(copy.invalidCredentials);
         return;
       }
 
@@ -196,11 +325,11 @@ export function AuthForm({ nextPath = "/dashboard", initialError = null }: AuthF
   return (
     <div className="panel w-full p-6 sm:p-7">
       <div className="mb-1 flex items-center gap-2">
-        <span className="chip">Acceso</span>
+        <span className="chip">{copy.chip}</span>
       </div>
 
-      <h2 className="mt-2 text-4xl leading-none text-[#1f2937]">Login y registro</h2>
-      <p className="section-subtitle mt-2">Entra con email/password o Google OAuth.</p>
+      <h2 className="mt-2 text-4xl leading-none text-[#1f2937]">{copy.title}</h2>
+      <p className="section-subtitle mt-2">{copy.subtitle}</p>
 
       <div className="mt-6 flex items-center gap-2 rounded-xl border border-[#e5d7aa] bg-[#fff9e8] p-1">
         <button
@@ -210,7 +339,7 @@ export function AuthForm({ nextPath = "/dashboard", initialError = null }: AuthF
             mode === "login" ? "bg-[#1d2430] text-[#ffe289]" : "text-[#6b7280] hover:bg-[#fff4cf]"
           }`}
         >
-          Entrar
+          {copy.tabLogin}
         </button>
         <button
           type="button"
@@ -219,7 +348,7 @@ export function AuthForm({ nextPath = "/dashboard", initialError = null }: AuthF
             mode === "signup" ? "bg-[#1d2430] text-[#ffe289]" : "text-[#6b7280] hover:bg-[#fff4cf]"
           }`}
         >
-          Crear cuenta
+          {copy.tabSignup}
         </button>
       </div>
 
@@ -227,7 +356,7 @@ export function AuthForm({ nextPath = "/dashboard", initialError = null }: AuthF
         {mode === "signup" ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block space-y-1 text-sm">
-              <span className="label-tech">Nombre</span>
+              <span className="label-tech">{copy.firstName}</span>
               <input
                 type="text"
                 required
@@ -240,7 +369,7 @@ export function AuthForm({ nextPath = "/dashboard", initialError = null }: AuthF
             </label>
 
             <label className="block space-y-1 text-sm">
-              <span className="label-tech">Apellido</span>
+              <span className="label-tech">{copy.lastName}</span>
               <input
                 type="text"
                 required
@@ -255,22 +384,40 @@ export function AuthForm({ nextPath = "/dashboard", initialError = null }: AuthF
         ) : null}
 
         {mode === "signup" ? (
-          <label className="block space-y-1 text-sm">
-            <span className="label-tech">Telefono</span>
-            <input
-              type="tel"
-              required
-              autoComplete="tel"
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              className="input-tech"
-              placeholder="+54911..."
-            />
-          </label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block space-y-1 text-sm">
+              <span className="label-tech">{copy.phone}</span>
+              <input
+                type="tel"
+                required
+                autoComplete="tel"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                className="input-tech"
+                placeholder="+54911..."
+              />
+            </label>
+
+            <label className="block space-y-1 text-sm">
+              <span className="label-tech">{copy.country}</span>
+              <select
+                required
+                value={countryCode}
+                onChange={(event) => setCountryCode(event.target.value)}
+                className="select-tech"
+              >
+                {COUNTRIES.map((country) => (
+                  <option key={country.code} value={country.code}>
+                    {country.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         ) : null}
 
         <label className="block space-y-1 text-sm">
-          <span className="label-tech">Email</span>
+          <span className="label-tech">{copy.email}</span>
           <input
             type="email"
             required
@@ -283,7 +430,7 @@ export function AuthForm({ nextPath = "/dashboard", initialError = null }: AuthF
         </label>
 
         <label className="block space-y-1 text-sm">
-          <span className="label-tech">Password</span>
+          <span className="label-tech">{copy.password}</span>
           <input
             type="password"
             required
@@ -301,13 +448,13 @@ export function AuthForm({ nextPath = "/dashboard", initialError = null }: AuthF
           disabled={isPending}
           className="btn-primary w-full px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isPending ? "Procesando..." : mode === "login" ? "Entrar" : "Crear cuenta"}
+          {isPending ? copy.submitPending : mode === "login" ? copy.submitLogin : copy.submitSignup}
         </button>
       </form>
 
       <div className="my-4 flex items-center gap-3">
         <div className="h-px flex-1 bg-[#e5d7aa]" />
-        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#6b7280]">o</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#6b7280]">{copy.or}</span>
         <div className="h-px flex-1 bg-[#e5d7aa]" />
       </div>
 
@@ -323,16 +470,16 @@ export function AuthForm({ nextPath = "/dashboard", initialError = null }: AuthF
         >
           G
         </span>
-        {isGooglePending ? "Redirigiendo a Google..." : "Continuar con Google"}
+        {isGooglePending ? copy.redirectGoogle : copy.continueGoogle}
       </button>
-      <p className="hint-text mt-2">Si falla Google, revisa providers y redirect URLs en Supabase.</p>
+      <p className="hint-text mt-2">{copy.googleHint}</p>
 
       {error ? <p className="alert-error mt-4 rounded-lg p-3 text-sm">{error}</p> : null}
       {info ? <p className="alert-success mt-4 rounded-lg p-3 text-sm">{info}</p> : null}
 
       {googleIssue ? (
         <div className="alert-warning mt-4 rounded-lg p-3 text-sm">
-          <p className="font-semibold">Checklist Google OAuth</p>
+          <p className="font-semibold">{copy.googleChecklist}</p>
           <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs sm:text-sm">
             <li>En Supabase: Authentication &gt; Providers &gt; Google y activa el provider.</li>
             <li>Copia Client ID y Client Secret desde Google Cloud OAuth app.</li>
