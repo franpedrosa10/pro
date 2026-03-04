@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -14,8 +14,6 @@ type AuthFormProps = {
   nextPath?: string;
   initialError?: string | null;
 };
-
-type GoogleIssue = "provider_disabled" | "redirect_mismatch" | "invalid_credentials" | null;
 
 function normalizeSupabaseAuthErrorMessage(message: string): string {
   const trimmed = message.trim();
@@ -37,7 +35,7 @@ function normalizeSupabaseAuthErrorMessage(message: string): string {
   }
 }
 
-function detectGoogleIssue(message: string): GoogleIssue {
+function detectGoogleIssue(message: string): "provider_disabled" | "redirect_mismatch" | "invalid_credentials" | null {
   const normalized = message.toLowerCase();
 
   if (normalized.includes("unsupported provider") || normalized.includes("provider is not enabled")) {
@@ -53,20 +51,6 @@ function detectGoogleIssue(message: string): GoogleIssue {
   }
 
   return null;
-}
-
-function getSupabaseGoogleCallbackUrl() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!supabaseUrl) {
-    return "https://<project-ref>.supabase.co/auth/v1/callback";
-  }
-
-  try {
-    const hostname = new URL(supabaseUrl).hostname;
-    return `https://${hostname}/auth/v1/callback`;
-  } catch {
-    return "https://<project-ref>.supabase.co/auth/v1/callback";
-  }
 }
 
 const COPY: Record<
@@ -92,8 +76,6 @@ const COPY: Record<
     or: string;
     continueGoogle: string;
     redirectGoogle: string;
-    googleHint: string;
-    googleChecklist: string;
     providerDisabled: string;
     redirectMismatch: string;
     invalidCredentials: string;
@@ -120,8 +102,6 @@ const COPY: Record<
     or: "o",
     continueGoogle: "Continuar con Google",
     redirectGoogle: "Redirigiendo a Google...",
-    googleHint: "Si falla Google, revisa providers y redirect URLs en Supabase.",
-    googleChecklist: "Checklist Google OAuth",
     providerDisabled: "Google no esta habilitado en Supabase.",
     redirectMismatch: "La URL de redireccion de OAuth no esta permitida.",
     invalidCredentials: "Google esta habilitado pero hay un problema de credenciales (Client ID / Secret).",
@@ -147,8 +127,6 @@ const COPY: Record<
     or: "or",
     continueGoogle: "Continue with Google",
     redirectGoogle: "Redirecting to Google...",
-    googleHint: "If Google fails, verify providers and redirect URLs in Supabase.",
-    googleChecklist: "Google OAuth checklist",
     providerDisabled: "Google provider is not enabled in Supabase.",
     redirectMismatch: "OAuth redirect URL is not allowed.",
     invalidCredentials: "Google is enabled but credentials are invalid (Client ID/Secret).",
@@ -174,8 +152,6 @@ const COPY: Record<
     or: "ou",
     continueGoogle: "Continuar com Google",
     redirectGoogle: "Redirecionando para Google...",
-    googleHint: "Se Google falhar, revise providers e redirect URLs no Supabase.",
-    googleChecklist: "Checklist Google OAuth",
     providerDisabled: "Google nao esta habilitado no Supabase.",
     redirectMismatch: "URL de redirecionamento OAuth nao permitida.",
     invalidCredentials: "Google esta ativo, mas credenciais invalidas (Client ID/Secret).",
@@ -195,18 +171,14 @@ export function AuthForm({ locale, nextPath = "/dashboard", initialError = null 
   const [info, setInfo] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [isGooglePending, setIsGooglePending] = useState(false);
-  const [googleIssue, setGoogleIssue] = useState<GoogleIssue>(null);
 
   const router = useRouter();
   const redirectPath = nextPath;
-  const supabaseGoogleCallbackUrl = useMemo(() => getSupabaseGoogleCallbackUrl(), []);
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setInfo(null);
-    setGoogleIssue(null);
     setIsPending(true);
 
     const supabase = createSupabaseBrowserClient();
@@ -281,7 +253,6 @@ export function AuthForm({ locale, nextPath = "/dashboard", initialError = null 
   async function handleGoogleSignIn() {
     setError(null);
     setInfo(null);
-    setGoogleIssue(null);
     setIsGooglePending(true);
 
     const supabase = createSupabaseBrowserClient();
@@ -301,7 +272,6 @@ export function AuthForm({ locale, nextPath = "/dashboard", initialError = null 
     if (oauthError) {
       const normalizedMessage = normalizeSupabaseAuthErrorMessage(oauthError.message);
       const issue = detectGoogleIssue(normalizedMessage);
-      setGoogleIssue(issue);
 
       if (issue === "provider_disabled") {
         setError(copy.providerDisabled);
@@ -472,30 +442,9 @@ export function AuthForm({ locale, nextPath = "/dashboard", initialError = null 
         </span>
         {isGooglePending ? copy.redirectGoogle : copy.continueGoogle}
       </button>
-      <p className="hint-text mt-2">{copy.googleHint}</p>
 
       {error ? <p className="alert-error mt-4 rounded-lg p-3 text-sm">{error}</p> : null}
       {info ? <p className="alert-success mt-4 rounded-lg p-3 text-sm">{info}</p> : null}
-
-      {googleIssue ? (
-        <div className="alert-warning mt-4 rounded-lg p-3 text-sm">
-          <p className="font-semibold">{copy.googleChecklist}</p>
-          <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs sm:text-sm">
-            <li>En Supabase: Authentication &gt; Providers &gt; Google y activa el provider.</li>
-            <li>Copia Client ID y Client Secret desde Google Cloud OAuth app.</li>
-            <li>
-              En Google Cloud agrega esta redirect URI:
-              <code className="ml-1 rounded bg-[#fff2c9] px-1 py-0.5">{supabaseGoogleCallbackUrl}</code>
-            </li>
-            <li>
-              En Supabase URLs agrega:
-              <code className="ml-1 rounded bg-[#fff2c9] px-1 py-0.5">{siteUrl}</code>
-              <span> y </span>
-              <code className="rounded bg-[#fff2c9] px-1 py-0.5">{siteUrl}/auth/callback</code>
-            </li>
-          </ol>
-        </div>
-      ) : null}
     </div>
   );
 }

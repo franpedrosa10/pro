@@ -129,17 +129,6 @@ export default async function Home() {
           </article>
         </section>
 
-        <section className="panel p-5 sm:p-6">
-          <h2 className="text-4xl leading-none">Estado actual de producto</h2>
-          <div className="mt-3 grid gap-2 text-sm text-[#4c5564] sm:grid-cols-2">
-            <p>- Auth email + Google OAuth</p>
-            <p>- Registro completo con pais</p>
-            <p>- Prode editable con lock por kickoff</p>
-            <p>- Ligas privadas + tabla por liga</p>
-            <p>- Ranking global, por fecha y por pais</p>
-            <p>- API + reglas validadas tambien en SQL</p>
-          </div>
-        </section>
       </div>
     </main>
   );

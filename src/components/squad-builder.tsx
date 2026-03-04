@@ -610,7 +610,7 @@ export function SquadBuilder({
   if (players.length === 0) {
     return (
       <div className="alert-warning rounded-2xl p-5 text-sm">
-        No hay jugadores cargados. Ejecuta `supabase/seed.sql` o importa tu dataset real.
+        No hay jugadores disponibles en este momento.
       </div>
     );
   }
