@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 :root {
   --background: #f4efe0;
@@ -170,6 +170,23 @@ h4 {
 
 .input-tech::placeholder {
   color: #6a6554;
+}
+
+.input-eye-toggle {
+  display: inline-flex;
+  height: 1.5rem;
+  width: 1.5rem;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: #6b7280;
+  line-height: 1;
+  transition: color 120ms ease;
+}
+
+.input-eye-toggle:hover {
+  color: #1d2430;
 }
 
 .input-tech:focus,
@@ -452,4 +469,5 @@ h4 {
     padding-top: 1rem;
   }
 }
+
 

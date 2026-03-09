@@ -1,6 +1,4 @@
-import { AuthForm } from "@/components/auth-form";
-import type { AppLocale } from "@/lib/i18n";
-import { getRequestLocale } from "@/lib/i18n/server";
+﻿import { AuthForm } from "@/components/auth-form";
 
 type LoginPageProps = {
   searchParams: Promise<{
@@ -9,103 +7,78 @@ type LoginPageProps = {
   }>;
 };
 
-const COPY: Record<
-  AppLocale,
-  {
-    chip: string;
-    title: string;
-    subtitle: string;
-    authErrorNoCode: string;
-    authErrorProviderDisabled: string;
-    authErrorRedirectMismatch: string;
-    authErrorInvalidCredentials: string;
-    authErrorFailed: string;
-  }
-> = {
-  es: {
-    chip: "Acceso",
-    title: "Entra y arranca la fecha",
-    subtitle: "Carga tu prode y competi en ligas privadas. Entrar toma 20 segundos, competir dura todo el Mundial.",
-    authErrorNoCode: "Google no devolvio codigo de autorizacion.",
-    authErrorProviderDisabled: "Google no esta habilitado en Supabase.",
-    authErrorRedirectMismatch: "La URL de redireccion de Google OAuth no coincide con la configuracion.",
-    authErrorInvalidCredentials: "Google OAuth esta activo pero Client ID/Secret son invalidos.",
-    authErrorFailed: "No se pudo iniciar sesion con Google.",
-  },
-  en: {
-    chip: "Access",
-    title: "Sign in and start this matchday",
-    subtitle: "Load your picks and compete in private leagues all tournament long.",
-    authErrorNoCode: "Google did not return an authorization code.",
-    authErrorProviderDisabled: "Google provider is not enabled in Supabase.",
-    authErrorRedirectMismatch: "Google OAuth redirect URL does not match your configuration.",
-    authErrorInvalidCredentials: "Google OAuth is enabled but Client ID/Secret are invalid.",
-    authErrorFailed: "Could not sign in with Google.",
-  },
-  pt: {
-    chip: "Acesso",
-    title: "Entre e comece a rodada",
-    subtitle: "Carregue seus palpites e compita em ligas privadas durante toda a Copa.",
-    authErrorNoCode: "Google nao retornou codigo de autorizacao.",
-    authErrorProviderDisabled: "Google nao esta habilitado no Supabase.",
-    authErrorRedirectMismatch: "URL de redirecionamento do Google OAuth nao confere.",
-    authErrorInvalidCredentials: "Google OAuth ativo, mas Client ID/Secret invalidos.",
-    authErrorFailed: "Nao foi possivel entrar com Google.",
-  },
+const COPY = {
+  chip: "Mundial 2026",
+  title: "Prode del Mundial",
+  subtitle: "Pronosticá partidos, competí en ligas privadas y subí en el ranking global.",
+  tagProde: "Prode",
+  tagLeagues: "Ligas privadas",
+  tagRanking: "Ranking global",
+  authErrorNoCode: "Google no devolvió código de autorización.",
+  authErrorProviderDisabled: "Google no está habilitado en Supabase.",
+  authErrorRedirectMismatch: "La URL de redirección de Google OAuth no coincide con la configuración.",
+  authErrorInvalidCredentials: "Google OAuth está activo pero Client ID/Secret son inválidos.",
+  authErrorFailed: "No se pudo iniciar sesión con Google.",
 };
 
-function mapAuthError(errorValue: string | null, locale: AppLocale) {
-  const copy = COPY[locale];
+function mapAuthError(errorValue: string | null) {
   if (errorValue === "oauth_no_code") {
-    return copy.authErrorNoCode;
+    return COPY.authErrorNoCode;
   }
 
   if (errorValue === "oauth_provider_disabled") {
-    return copy.authErrorProviderDisabled;
+    return COPY.authErrorProviderDisabled;
   }
 
   if (errorValue === "oauth_redirect_mismatch") {
-    return copy.authErrorRedirectMismatch;
+    return COPY.authErrorRedirectMismatch;
   }
 
   if (errorValue === "oauth_invalid_credentials") {
-    return copy.authErrorInvalidCredentials;
+    return COPY.authErrorInvalidCredentials;
   }
 
   if (errorValue === "oauth_failed") {
-    return copy.authErrorFailed;
+    return COPY.authErrorFailed;
   }
 
   return null;
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const locale = await getRequestLocale();
-  const copy = COPY[locale];
   const params = await searchParams;
   const nextValue = params.next;
   const nextPath = typeof nextValue === "string" ? nextValue : "/dashboard";
   const errorValue = typeof params.error === "string" ? params.error : null;
-  const initialError = mapAuthError(errorValue, locale);
+  const initialError = mapAuthError(errorValue);
 
   return (
     <main className="page-shell">
-      <div className="app-container grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.86fr)]">
-        <section className="panel-strong p-6 sm:p-8">
-          <p className="chip w-fit">{copy.chip}</p>
-          <h1 className="mt-3 text-6xl leading-none sm:text-7xl">{copy.title}</h1>
-          <p className="section-subtitle mt-3 max-w-md text-sm sm:text-base">
-            {copy.subtitle}
-          </p>
+      <div className="app-container grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.82fr)]">
+        <section className="panel-strong p-6 sm:p-7">
+          <p className="chip w-fit">{COPY.chip}</p>
+          <h1 className="mt-3 max-w-[12ch] text-5xl leading-[0.95] sm:text-6xl">{COPY.title}</h1>
+          <p className="section-subtitle mt-3 max-w-xl text-sm sm:text-base">{COPY.subtitle}</p>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            <span className="rounded-full border-2 border-[#1d2430] bg-[#fff7d9] px-3 py-1 text-xs font-semibold tracking-[0.12em] text-[#6a4a00]">
+              {COPY.tagProde}
+            </span>
+            <span className="rounded-full border-2 border-[#1d2430] bg-[#fff7d9] px-3 py-1 text-xs font-semibold tracking-[0.12em] text-[#6a4a00]">
+              {COPY.tagLeagues}
+            </span>
+            <span className="rounded-full border-2 border-[#1d2430] bg-[#fff7d9] px-3 py-1 text-xs font-semibold tracking-[0.12em] text-[#6a4a00]">
+              {COPY.tagRanking}
+            </span>
+          </div>
         </section>
 
         <div className="flex items-center justify-center">
           <div className="w-full max-w-md">
-            <AuthForm locale={locale} nextPath={nextPath} initialError={initialError} />
+            <AuthForm nextPath={nextPath} initialError={initialError} />
           </div>
         </div>
       </div>
     </main>
   );
 }
-

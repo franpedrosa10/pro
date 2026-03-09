@@ -23,6 +23,38 @@ type StandingsRow = {
   points: number;
 };
 
+function buildDisplayName(profile: {
+  id?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  display_name?: string | null;
+  username?: string | null;
+}) {
+  const firstName = (profile.first_name ?? "").trim();
+  const lastName = (profile.last_name ?? "").trim();
+  const fullName = `${firstName} ${lastName}`.trim();
+  if (fullName) {
+    return fullName;
+  }
+
+  const displayName = (profile.display_name ?? "").trim();
+  if (displayName) {
+    return displayName;
+  }
+
+  const username = (profile.username ?? "").trim();
+  if (username) {
+    return username;
+  }
+
+  const shortId = String(profile.id ?? "").replace(/-/g, "").slice(0, 6);
+  if (shortId) {
+    return `Jugador ${shortId}`;
+  }
+
+  return "Jugador";
+}
+
 const COPY: Record<
   AppLocale,
   {
@@ -219,7 +251,7 @@ export default async function DashboardPage() {
 
   const profilesResult = await supabase
     .from("profiles")
-    .select("id, display_name, username, country_code, country_name");
+    .select("id, first_name, last_name, display_name, username, country_code, country_name");
 
   const prodeTotalsResult = await supabase
     .from("v_prode_user_totals")
@@ -242,10 +274,13 @@ export default async function DashboardPage() {
       const userId = profile.id as string;
       return {
         userId,
-        displayName:
-          (profile.display_name as string | null) ||
-          (profile.username as string | null) ||
-          "Jugador",
+        displayName: buildDisplayName({
+          id: profile.id as string | null,
+          first_name: profile.first_name as string | null,
+          last_name: profile.last_name as string | null,
+          display_name: profile.display_name as string | null,
+          username: profile.username as string | null,
+        }),
         countryCode: (profile.country_code as string | null) ?? null,
         countryName: (profile.country_name as string | null) ?? null,
         points: pointsByUserId.get(userId) ?? 0,

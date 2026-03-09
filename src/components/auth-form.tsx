@@ -1,16 +1,18 @@
 "use client";
 
+import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { COUNTRIES, getCountryNameByCode } from "@/lib/domain/countries";
 import type { AppLocale } from "@/lib/i18n";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type AuthMode = "login" | "signup";
 
 type AuthFormProps = {
-  locale: AppLocale;
+  locale?: AppLocale;
   nextPath?: string;
   initialError?: string | null;
 };
@@ -53,113 +55,7 @@ function detectGoogleIssue(message: string): "provider_disabled" | "redirect_mis
   return null;
 }
 
-const COPY: Record<
-  AppLocale,
-  {
-    chip: string;
-    title: string;
-    subtitle: string;
-    tabLogin: string;
-    tabSignup: string;
-    firstName: string;
-    lastName: string;
-    phone: string;
-    country: string;
-    email: string;
-    password: string;
-    requiredSignup: string;
-    invalidCountry: string;
-    signupInbox: string;
-    submitPending: string;
-    submitLogin: string;
-    submitSignup: string;
-    or: string;
-    continueGoogle: string;
-    redirectGoogle: string;
-    providerDisabled: string;
-    redirectMismatch: string;
-    invalidCredentials: string;
-  }
-> = {
-  es: {
-    chip: "Acceso",
-    title: "Login y registro",
-    subtitle: "Entra con email/password o Google OAuth.",
-    tabLogin: "Entrar",
-    tabSignup: "Crear cuenta",
-    firstName: "Nombre",
-    lastName: "Apellido",
-    phone: "Telefono",
-    country: "Pais",
-    email: "Email",
-    password: "Password",
-    requiredSignup: "Nombre, apellido, telefono y pais son obligatorios.",
-    invalidCountry: "Selecciona un pais valido.",
-    signupInbox: "Cuenta creada. Si tenes confirmacion por mail activa, revisa tu inbox.",
-    submitPending: "Procesando...",
-    submitLogin: "Entrar",
-    submitSignup: "Crear cuenta",
-    or: "o",
-    continueGoogle: "Continuar con Google",
-    redirectGoogle: "Redirigiendo a Google...",
-    providerDisabled: "Google no esta habilitado en Supabase.",
-    redirectMismatch: "La URL de redireccion de OAuth no esta permitida.",
-    invalidCredentials: "Google esta habilitado pero hay un problema de credenciales (Client ID / Secret).",
-  },
-  en: {
-    chip: "Access",
-    title: "Login and signup",
-    subtitle: "Sign in with email/password or Google OAuth.",
-    tabLogin: "Login",
-    tabSignup: "Create account",
-    firstName: "First name",
-    lastName: "Last name",
-    phone: "Phone",
-    country: "Country",
-    email: "Email",
-    password: "Password",
-    requiredSignup: "First name, last name, phone and country are required.",
-    invalidCountry: "Select a valid country.",
-    signupInbox: "Account created. Check your inbox if email confirmation is enabled.",
-    submitPending: "Processing...",
-    submitLogin: "Login",
-    submitSignup: "Create account",
-    or: "or",
-    continueGoogle: "Continue with Google",
-    redirectGoogle: "Redirecting to Google...",
-    providerDisabled: "Google provider is not enabled in Supabase.",
-    redirectMismatch: "OAuth redirect URL is not allowed.",
-    invalidCredentials: "Google is enabled but credentials are invalid (Client ID/Secret).",
-  },
-  pt: {
-    chip: "Acesso",
-    title: "Login e cadastro",
-    subtitle: "Entre com email/password ou Google OAuth.",
-    tabLogin: "Entrar",
-    tabSignup: "Criar conta",
-    firstName: "Nome",
-    lastName: "Sobrenome",
-    phone: "Telefone",
-    country: "Pais",
-    email: "Email",
-    password: "Senha",
-    requiredSignup: "Nome, sobrenome, telefone e pais sao obrigatorios.",
-    invalidCountry: "Selecione um pais valido.",
-    signupInbox: "Conta criada. Verifique seu email se confirmacao estiver ativa.",
-    submitPending: "Processando...",
-    submitLogin: "Entrar",
-    submitSignup: "Criar conta",
-    or: "ou",
-    continueGoogle: "Continuar com Google",
-    redirectGoogle: "Redirecionando para Google...",
-    providerDisabled: "Google nao esta habilitado no Supabase.",
-    redirectMismatch: "URL de redirecionamento OAuth nao permitida.",
-    invalidCredentials: "Google esta ativo, mas credenciais invalidas (Client ID/Secret).",
-  },
-};
-
-export function AuthForm({ locale, nextPath = "/dashboard", initialError = null }: AuthFormProps) {
-  const copy = COPY[locale];
+export function AuthForm({ nextPath = "/dashboard", initialError = null }: AuthFormProps) {
   const [mode, setMode] = useState<AuthMode>("login");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -167,13 +63,18 @@ export function AuthForm({ locale, nextPath = "/dashboard", initialError = null 
   const [countryCode, setCountryCode] = useState("AR");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(initialError);
   const [info, setInfo] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [isGooglePending, setIsGooglePending] = useState(false);
-
   const router = useRouter();
-  const redirectPath = nextPath;
+
+  function switchMode(nextMode: AuthMode) {
+    setMode(nextMode);
+    setError(null);
+    setInfo(null);
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -186,7 +87,7 @@ export function AuthForm({ locale, nextPath = "/dashboard", initialError = null 
     if (mode === "signup") {
       if (!firstName.trim() || !lastName.trim() || !phone.trim() || !countryCode.trim()) {
         setIsPending(false);
-        setError(copy.requiredSignup);
+        setError("Nombre, apellido, teléfono y país son obligatorios.");
         return;
       }
 
@@ -194,7 +95,7 @@ export function AuthForm({ locale, nextPath = "/dashboard", initialError = null 
       const countryName = getCountryNameByCode(normalizedCountryCode);
       if (!countryName) {
         setIsPending(false);
-        setError(copy.invalidCountry);
+        setError("Seleccioná un país válido.");
         return;
       }
 
@@ -216,7 +117,7 @@ export function AuthForm({ locale, nextPath = "/dashboard", initialError = null 
       setIsPending(false);
 
       if (signUpError) {
-        setError(signUpError.message);
+        setError(normalizeSupabaseAuthErrorMessage(signUpError.message));
         return;
       }
 
@@ -226,11 +127,11 @@ export function AuthForm({ locale, nextPath = "/dashboard", initialError = null 
       setCountryCode("AR");
 
       if (!data.session) {
-        setInfo(copy.signupInbox);
+        setInfo("Cuenta creada. Si tenés confirmación por mail activa, revisá inbox y spam.");
         return;
       }
 
-      router.push(redirectPath);
+      router.push(nextPath);
       router.refresh();
       return;
     }
@@ -242,11 +143,11 @@ export function AuthForm({ locale, nextPath = "/dashboard", initialError = null 
     setIsPending(false);
 
     if (signInError) {
-      setError(signInError.message);
+      setError(normalizeSupabaseAuthErrorMessage(signInError.message));
       return;
     }
 
-    router.push(redirectPath);
+    router.push(nextPath);
     router.refresh();
   }
 
@@ -257,7 +158,7 @@ export function AuthForm({ locale, nextPath = "/dashboard", initialError = null 
 
     const supabase = createSupabaseBrowserClient();
     const baseUrl = window.location.origin;
-    const safeNextPath = redirectPath.startsWith("/") ? redirectPath : "/dashboard";
+    const safeNextPath = nextPath.startsWith("/") ? nextPath : "/dashboard";
     const redirectTo = `${baseUrl}/auth/callback?next=${encodeURIComponent(safeNextPath)}`;
 
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
@@ -274,17 +175,17 @@ export function AuthForm({ locale, nextPath = "/dashboard", initialError = null 
       const issue = detectGoogleIssue(normalizedMessage);
 
       if (issue === "provider_disabled") {
-        setError(copy.providerDisabled);
+        setError("Google no está habilitado en Supabase.");
         return;
       }
 
       if (issue === "redirect_mismatch") {
-        setError(copy.redirectMismatch);
+        setError("La URL de redirección de OAuth no está permitida.");
         return;
       }
 
       if (issue === "invalid_credentials") {
-        setError(copy.invalidCredentials);
+        setError("Google está habilitado pero hay un problema de credenciales (Client ID / Secret).");
         return;
       }
 
@@ -295,38 +196,21 @@ export function AuthForm({ locale, nextPath = "/dashboard", initialError = null 
   return (
     <div className="panel w-full p-6 sm:p-7">
       <div className="mb-1 flex items-center gap-2">
-        <span className="chip">{copy.chip}</span>
+        <span className="chip">Acceso</span>
       </div>
 
-      <h2 className="mt-2 text-4xl leading-none text-[#1f2937]">{copy.title}</h2>
-      <p className="section-subtitle mt-2">{copy.subtitle}</p>
-
-      <div className="mt-6 flex items-center gap-2 rounded-xl border border-[#e5d7aa] bg-[#fff9e8] p-1">
-        <button
-          type="button"
-          onClick={() => setMode("login")}
-          className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${
-            mode === "login" ? "bg-[#1d2430] text-[#ffe289]" : "text-[#6b7280] hover:bg-[#fff4cf]"
-          }`}
-        >
-          {copy.tabLogin}
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode("signup")}
-          className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${
-            mode === "signup" ? "bg-[#1d2430] text-[#ffe289]" : "text-[#6b7280] hover:bg-[#fff4cf]"
-          }`}
-        >
-          {copy.tabSignup}
-        </button>
-      </div>
+      <h2 className="mt-2 text-4xl leading-none text-[#1f2937]">
+        {mode === "login" ? "Iniciar sesión" : "Crear cuenta"}
+      </h2>
+      <p className="section-subtitle mt-2">
+        {mode === "login" ? "Entrá con tu email o Google." : "Completá tus datos para registrarte."}
+      </p>
 
       <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
         {mode === "signup" ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block space-y-1 text-sm">
-              <span className="label-tech">{copy.firstName}</span>
+              <span className="label-tech">Nombre</span>
               <input
                 type="text"
                 required
@@ -339,7 +223,7 @@ export function AuthForm({ locale, nextPath = "/dashboard", initialError = null 
             </label>
 
             <label className="block space-y-1 text-sm">
-              <span className="label-tech">{copy.lastName}</span>
+              <span className="label-tech">Apellido</span>
               <input
                 type="text"
                 required
@@ -347,7 +231,7 @@ export function AuthForm({ locale, nextPath = "/dashboard", initialError = null 
                 value={lastName}
                 onChange={(event) => setLastName(event.target.value)}
                 className="input-tech"
-                placeholder="Perez"
+                placeholder="Pérez"
               />
             </label>
           </div>
@@ -356,7 +240,7 @@ export function AuthForm({ locale, nextPath = "/dashboard", initialError = null 
         {mode === "signup" ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block space-y-1 text-sm">
-              <span className="label-tech">{copy.phone}</span>
+              <span className="label-tech">Teléfono</span>
               <input
                 type="tel"
                 required
@@ -369,7 +253,7 @@ export function AuthForm({ locale, nextPath = "/dashboard", initialError = null 
             </label>
 
             <label className="block space-y-1 text-sm">
-              <span className="label-tech">{copy.country}</span>
+              <span className="label-tech">País</span>
               <select
                 required
                 value={countryCode}
@@ -387,7 +271,7 @@ export function AuthForm({ locale, nextPath = "/dashboard", initialError = null 
         ) : null}
 
         <label className="block space-y-1 text-sm">
-          <span className="label-tech">{copy.email}</span>
+          <span className="label-tech">Email</span>
           <input
             type="email"
             required
@@ -400,31 +284,62 @@ export function AuthForm({ locale, nextPath = "/dashboard", initialError = null 
         </label>
 
         <label className="block space-y-1 text-sm">
-          <span className="label-tech">{copy.password}</span>
-          <input
-            type="password"
-            required
-            minLength={6}
-            autoComplete={mode === "login" ? "current-password" : "new-password"}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="input-tech"
-            placeholder="******"
-          />
+          <span className="label-tech">Contraseña</span>
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              required
+              minLength={6}
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className="input-tech pr-12"
+              placeholder="******"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((current) => !current)}
+              title={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
+              aria-label={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
+              className="input-eye-toggle absolute right-2 top-1/2 -translate-y-1/2"
+            >
+              {showPassword ? <EyeOff size={16} strokeWidth={2.1} /> : <Eye size={16} strokeWidth={2.1} />}
+            </button>
+          </div>
         </label>
+
+        {mode === "login" ? (
+          <Link
+            href={`/forgot-password?next=${encodeURIComponent(nextPath)}`}
+            className="link-inline inline-flex text-sm"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
+        ) : null}
 
         <button
           type="submit"
           disabled={isPending}
           className="btn-primary w-full px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isPending ? copy.submitPending : mode === "login" ? copy.submitLogin : copy.submitSignup}
+          {isPending ? "Procesando..." : mode === "login" ? "Iniciar sesión" : "Registrarme"}
         </button>
       </form>
 
+      <p className="mt-4 text-sm text-[#5c6675]">
+        {mode === "login" ? "¿No tenés cuenta?" : "¿Ya tenés cuenta?"}{" "}
+        <button
+          type="button"
+          onClick={() => switchMode(mode === "login" ? "signup" : "login")}
+          className="link-inline"
+        >
+          {mode === "login" ? "Registrate" : "Iniciá sesión"}
+        </button>
+      </p>
+
       <div className="my-4 flex items-center gap-3">
         <div className="h-px flex-1 bg-[#e5d7aa]" />
-        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#6b7280]">{copy.or}</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#6b7280]">o</span>
         <div className="h-px flex-1 bg-[#e5d7aa]" />
       </div>
 
@@ -440,7 +355,7 @@ export function AuthForm({ locale, nextPath = "/dashboard", initialError = null 
         >
           G
         </span>
-        {isGooglePending ? copy.redirectGoogle : copy.continueGoogle}
+        {isGooglePending ? "Redirigiendo a Google..." : "Continuar con Google"}
       </button>
 
       {error ? <p className="alert-error mt-4 rounded-lg p-3 text-sm">{error}</p> : null}
@@ -448,5 +363,3 @@ export function AuthForm({ locale, nextPath = "/dashboard", initialError = null 
     </div>
   );
 }
-
-
