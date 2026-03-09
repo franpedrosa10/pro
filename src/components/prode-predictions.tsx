@@ -392,11 +392,7 @@ export function ProdePredictions({ copy, fixtures, predictions, initialDoubles, 
               >
                 <div className="flex items-center justify-between gap-1.5">
                   <p className="truncate text-xs font-bold text-[#1f2937]">{matchday.name}</p>
-                  {hasDouble ? (
-                    <span className="x2-chip px-1.5 py-0.5 text-[10px] font-semibold">
-                      ★ {copy.doubleBadge}
-                    </span>
-                  ) : null}
+                  {hasDouble ? <span className="x2-chip px-1.5 py-0.5 text-[10px] font-semibold">{copy.doubleBadge}</span> : null}
                 </div>
                 <p className="mt-0.5 text-[11px] text-[#5d6778]">
                   {matchday.completedCount}/{matchday.fixtures.length} {copy.loadedSuffix}
@@ -430,7 +426,7 @@ export function ProdePredictions({ copy, fixtures, predictions, initialDoubles, 
           const canToggleDouble = fixture.status === "scheduled" && fixtureKickoffTs > nowTimestamp && matchdayLockTs > nowTimestamp;
 
           return (
-            <article key={fixture.id} className="panel-soft p-3 sm:p-3.5">
+            <article key={fixture.id} className={`panel-soft p-3 sm:p-3.5 ${isDoubleFixture ? "fixture-x2-active" : ""}`}>
               <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-[#1f2937] sm:text-[15px]">
@@ -439,11 +435,7 @@ export function ProdePredictions({ copy, fixtures, predictions, initialDoubles, 
                   <p className="text-xs text-[#6b7280]">{fixture.kickoff_label}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
-                  {isDoubleFixture ? (
-                    <span className="x2-chip px-2 py-1 text-[11px] font-semibold">
-                      ★ {copy.doubleBadge}
-                    </span>
-                  ) : null}
+                  {isDoubleFixture ? <span className="x2-chip px-2 py-1 text-[11px] font-semibold">{copy.doubleBadge}</span> : null}
                   <span
                     className={`rounded px-2 py-1 text-[11px] font-semibold ${
                       isLocked ? "bg-[#ececec] text-[#6b7280]" : "bg-[#9a6b00] text-white"
@@ -460,14 +452,15 @@ export function ProdePredictions({ copy, fixtures, predictions, initialDoubles, 
                     type="button"
                     onClick={() => saveMatchdayDouble(fixture.matchday_id, isDoubleFixture ? null : fixture.id)}
                     disabled={!canToggleDouble || isSavingDouble}
-                    aria-label={isDoubleFixture ? copy.doubleRemove : copy.doubleMark}
-                    className={`x2-star-btn disabled:cursor-not-allowed disabled:opacity-60 ${
-                      isDoubleFixture ? "x2-star-btn-active" : "x2-star-btn-idle"
+                    className={`btn-ghost min-w-[62px] px-2 py-1 text-[11px] font-semibold disabled:cursor-not-allowed disabled:opacity-60 ${
+                      isDoubleFixture ? "bg-[#ffe289]" : ""
                     }`}
                   >
-                    <span className="x2-star-core">
-                      {isSavingDouble && savingDoubleFixtureId === fixture.id ? "..." : "X2"}
-                    </span>
+                    {isSavingDouble && savingDoubleFixtureId === fixture.id
+                      ? copy.doubleSaving
+                      : isDoubleFixture
+                        ? copy.doubleRemove
+                        : copy.doubleMark}
                   </button>
                 </div>
               </div>

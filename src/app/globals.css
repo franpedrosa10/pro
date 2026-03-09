@@ -289,55 +289,12 @@ h4 {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
-.x2-star-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  background: transparent;
-  padding: 0;
-  transition: transform 120ms ease;
-}
-
-.x2-star-btn:not(:disabled):hover {
-  transform: translateY(-1px);
-}
-
-.x2-star-core {
-  display: inline-flex;
-  height: 2rem;
-  width: 2rem;
-  align-items: center;
-  justify-content: center;
-  clip-path: polygon(
-    50% 0%,
-    61% 35%,
-    98% 35%,
-    68% 57%,
-    79% 91%,
-    50% 70%,
-    21% 91%,
-    32% 57%,
-    2% 35%,
-    39% 35%
-  );
-  border: 2px solid #1d2430;
-  font-size: 0.62rem;
-  font-weight: 900;
-  letter-spacing: 0.02em;
-}
-
-.x2-star-btn-idle .x2-star-core {
-  background: #fffdf5;
-  color: #4b3d1a;
-}
-
-.x2-star-btn-active .x2-star-core {
-  background: linear-gradient(180deg, #ffd447 0%, #f3bb1a 100%);
-  color: #2b2007;
+.fixture-x2-active {
+  border-color: #8d6208;
+  background: linear-gradient(170deg, #fff9e7 0%, #fff2c8 100%);
   box-shadow:
-    0 0 0 2px rgba(255, 212, 71, 0.3),
-    0 2px 0 rgba(29, 36, 48, 0.35);
+    inset 0 0 0 2px rgba(255, 204, 72, 0.32),
+    0 0 0 1px rgba(141, 98, 8, 0.25);
 }
 
 .nav-item {

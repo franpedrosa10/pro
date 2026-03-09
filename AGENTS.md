@@ -36,7 +36,9 @@ Direccion de producto actual:
   - Selector de fechas compacto (chips horizontales)
   - Guardado por fecha actual y guardado global
   - `x2 por fecha` desde cada card de partido (1 partido por fecha, bloquea al inicio de la fecha)
+  - Partido con `x2` queda destacado visualmente en la lista
   - Eleccion de `campeon/subcampeon` (bloquea al cierre de fase de grupos)
+  - Selector de podio con dropdown custom y buscador integrado
 - Ligas privadas:
   - Crear liga
   - Unirse por codigo

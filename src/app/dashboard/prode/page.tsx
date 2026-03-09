@@ -30,6 +30,8 @@ const COPY: Record<
       locked: string;
       deadlinePrefix: string;
       selectPlaceholder: string;
+      searchPlaceholder: string;
+      noResults: string;
       sameTeamError: string;
       saveErrorFallback: string;
       saved: string;
@@ -92,6 +94,8 @@ const COPY: Record<
       locked: "Podio bloqueado",
       deadlinePrefix: "Cierra",
       selectPlaceholder: "Seleccioná un equipo",
+      searchPlaceholder: "Buscar equipo...",
+      noResults: "Sin resultados",
       sameTeamError: "Campeón y subcampeón no pueden ser el mismo equipo.",
       saveErrorFallback: "No se pudo guardar el podio.",
       saved: "Podio guardado correctamente.",
@@ -123,8 +127,8 @@ const COPY: Record<
       saveCurrentView: "Guardar vista actual",
       saveAll: "Guardar todo",
       saving: "Guardando...",
-      doubleMark: "Marcar x2",
-      doubleRemove: "Quitar x2",
+      doubleMark: "x2",
+      doubleRemove: "Quitar",
       doubleSaving: "Guardando x2...",
       doubleUpdated: "x2 actualizado para esta fecha.",
       doubleCleared: "x2 eliminado para esta fecha.",
