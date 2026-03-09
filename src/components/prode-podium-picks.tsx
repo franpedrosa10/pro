@@ -257,7 +257,7 @@ export function ProdePodiumPicks({
   }
 
   return (
-    <section className="panel p-4 sm:p-5">
+    <section className="panel panel-popover relative z-20 p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="text-3xl leading-none sm:text-4xl">{copy.title}</h2>
