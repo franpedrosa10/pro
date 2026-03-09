@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   const payload = await request.json().catch(() => null);
   const parseResult = createLeagueSchema.safeParse(payload);
   if (!parseResult.success) {
-    return NextResponse.json({ error: "Nombre de liga invalido." }, { status: 400 });
+    return NextResponse.json({ error: "Nombre de liga inválido." }, { status: 400 });
   }
 
   const { name } = parseResult.data;
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json(
-    { error: "No se pudo generar un codigo unico. Reintenta." },
+    { error: "No se pudo generar un código único. Reintentá." },
     { status: 500 },
   );
 }

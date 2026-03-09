@@ -1,10 +1,12 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type FixtureRow = {
   id: string;
+  matchday_id: string;
+  matchday_lock_at: string;
   kickoff_at: string;
   kickoff_label: string;
   status: "scheduled" | "in_progress" | "finished";
@@ -20,6 +22,11 @@ type ExistingPrediction = {
   fixture_id: string;
   predicted_home_score: number;
   predicted_away_score: number;
+};
+
+type InitialDouble = {
+  matchdayId: string;
+  fixtureId: string;
 };
 
 type DraftState = Record<
@@ -57,23 +64,35 @@ type ProdePredictionsProps = {
     saveCurrentView: string;
     saveAll: string;
     saving: string;
+    doubleTitle: string;
+    doubleSubtitle: string;
+    doubleSelectPlaceholder: string;
+    doubleSave: string;
+    doubleSaving: string;
+    doubleUpdated: string;
+    doubleCleared: string;
+    doubleSaveErrorFallback: string;
+    doubleCurrent: string;
+    doubleBadge: string;
   };
   fixtures: FixtureRow[];
   predictions: ExistingPrediction[];
+  initialDoubles: InitialDouble[];
   nowIso: string;
 };
 
 type MatchdayGroup = {
-  key: string;
+  id: string;
   name: string;
   order: number;
+  lockAt: string;
   fixtures: FixtureRow[];
   completedCount: number;
   editableCount: number;
   firstKickoff: string;
 };
 
-export function ProdePredictions({ copy, fixtures, predictions, nowIso }: ProdePredictionsProps) {
+export function ProdePredictions({ copy, fixtures, predictions, initialDoubles, nowIso }: ProdePredictionsProps) {
   const [draft, setDraft] = useState<DraftState>(() => {
     const initial: DraftState = {};
     for (const prediction of predictions) {
@@ -85,11 +104,24 @@ export function ProdePredictions({ copy, fixtures, predictions, nowIso }: ProdeP
     return initial;
   });
 
+  const [doubleDraftByMatchday, setDoubleDraftByMatchday] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    for (const row of initialDoubles) {
+      initial[row.matchdayId] = row.fixtureId;
+    }
+    return initial;
+  });
+
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveInfo, setSaveInfo] = useState<string | null>(null);
+
+  const [isSavingDouble, setIsSavingDouble] = useState(false);
+  const [doubleError, setDoubleError] = useState<string | null>(null);
+  const [doubleInfo, setDoubleInfo] = useState<string | null>(null);
+
   const [viewMode, setViewMode] = useState<"matchday" | "all">("matchday");
-  const [manualSelectedMatchdayKey, setManualSelectedMatchdayKey] = useState<string | null>(null);
+  const [manualSelectedMatchdayId, setManualSelectedMatchdayId] = useState<string | null>(null);
   const router = useRouter();
   const nowTimestamp = useMemo(() => new Date(nowIso).getTime(), [nowIso]);
 
@@ -115,14 +147,15 @@ export function ProdePredictions({ copy, fixtures, predictions, nowIso }: ProdeP
     const groups = new Map<string, MatchdayGroup>();
 
     for (const fixture of fixtures) {
+      const id = fixture.matchday_id;
       const order = fixture.matchday_order ?? 999;
-      const key = `${String(order).padStart(3, "0")}:${fixture.matchday_name}`;
 
-      if (!groups.has(key)) {
-        groups.set(key, {
-          key,
+      if (!groups.has(id)) {
+        groups.set(id, {
+          id,
           name: fixture.matchday_name,
           order,
+          lockAt: fixture.matchday_lock_at,
           fixtures: [],
           completedCount: 0,
           editableCount: 0,
@@ -130,7 +163,7 @@ export function ProdePredictions({ copy, fixtures, predictions, nowIso }: ProdeP
         });
       }
 
-      const current = groups.get(key)!;
+      const current = groups.get(id)!;
       current.fixtures.push(fixture);
 
       const draftHome = draft[fixture.id]?.predictedHome?.trim() ?? "";
@@ -160,24 +193,24 @@ export function ProdePredictions({ copy, fixtures, predictions, nowIso }: ProdeP
     });
   }, [fixtures, draft, editableFixtureIds]);
 
-  const selectedMatchdayKey = useMemo(() => {
+  const selectedMatchdayId = useMemo(() => {
     if (matchdays.length === 0) {
       return null;
     }
 
-    if (manualSelectedMatchdayKey && matchdays.some((matchday) => matchday.key === manualSelectedMatchdayKey)) {
-      return manualSelectedMatchdayKey;
+    if (manualSelectedMatchdayId && matchdays.some((matchday) => matchday.id === manualSelectedMatchdayId)) {
+      return manualSelectedMatchdayId;
     }
 
     const withPending = matchdays.find(
       (matchday) => matchday.editableCount > 0 && matchday.completedCount < matchday.editableCount,
     );
-    return withPending?.key ?? matchdays[0].key;
-  }, [matchdays, manualSelectedMatchdayKey]);
+    return withPending?.id ?? matchdays[0].id;
+  }, [matchdays, manualSelectedMatchdayId]);
 
   const selectedMatchday = useMemo(
-    () => matchdays.find((matchday) => matchday.key === selectedMatchdayKey) ?? null,
-    [matchdays, selectedMatchdayKey],
+    () => matchdays.find((matchday) => matchday.id === selectedMatchdayId) ?? null,
+    [matchdays, selectedMatchdayId],
   );
 
   const visibleFixtures = useMemo(() => {
@@ -197,6 +230,14 @@ export function ProdePredictions({ copy, fixtures, predictions, nowIso }: ProdeP
     [visibleFixtures, editableFixtureIds],
   );
 
+  const selectedMatchdayDoubleValue = selectedMatchday ? (doubleDraftByMatchday[selectedMatchday.id] ?? "") : "";
+  const selectedMatchdayDoubleLocked =
+    selectedMatchday ? new Date(selectedMatchday.lockAt).getTime() <= nowTimestamp : true;
+
+  const selectedDoubleFixture = selectedMatchday
+    ? selectedMatchday.fixtures.find((fixture) => fixture.id === selectedMatchdayDoubleValue) ?? null
+    : null;
+
   function updatePrediction(fixtureId: string, side: "predictedHome" | "predictedAway", value: string) {
     if (!/^\d*$/.test(value)) {
       return;
@@ -214,6 +255,58 @@ export function ProdePredictions({ copy, fixtures, predictions, nowIso }: ProdeP
     });
   }
 
+  function updateDoubleDraft(value: string) {
+    if (!selectedMatchday) {
+      return;
+    }
+
+    setDoubleDraftByMatchday((current) => ({
+      ...current,
+      [selectedMatchday.id]: value,
+    }));
+  }
+
+  async function saveMatchdayDouble() {
+    if (!selectedMatchday) {
+      return;
+    }
+
+    setDoubleError(null);
+    setDoubleInfo(null);
+    setIsSavingDouble(true);
+
+    const fixtureId = selectedMatchdayDoubleValue || null;
+
+    const response = await fetch("/api/prode/double", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        matchdayId: selectedMatchday.id,
+        fixtureId,
+      }),
+    });
+    const result = await response.json();
+    setIsSavingDouble(false);
+
+    if (!response.ok) {
+      setDoubleError(result.error ?? copy.doubleSaveErrorFallback);
+      return;
+    }
+
+    setDoubleDraftByMatchday((current) => {
+      const next = { ...current };
+      if (result.fixtureId) {
+        next[selectedMatchday.id] = result.fixtureId as string;
+      } else {
+        delete next[selectedMatchday.id];
+      }
+      return next;
+    });
+
+    setDoubleInfo(result.fixtureId ? copy.doubleUpdated : copy.doubleCleared);
+    router.refresh();
+  }
+
   async function savePredictions(scope: "visible" | "all") {
     setSaveError(null);
     setSaveInfo(null);
@@ -229,9 +322,7 @@ export function ProdePredictions({ copy, fixtures, predictions, nowIso }: ProdeP
       .filter((row) => row.predictedHome !== "" && row.predictedAway !== "");
 
     if (payload.length === 0) {
-      setSaveError(
-        scope === "all" ? copy.noNewAll : copy.noNewMatchday,
-      );
+      setSaveError(scope === "all" ? copy.noNewAll : copy.noNewMatchday);
       return;
     }
 
@@ -265,11 +356,7 @@ export function ProdePredictions({ copy, fixtures, predictions, nowIso }: ProdeP
   }
 
   if (fixtures.length === 0) {
-    return (
-      <div className="alert-warning rounded-2xl p-5 text-sm">
-        {copy.noFixtures}
-      </div>
-    );
+    return <div className="alert-warning rounded-2xl p-5 text-sm">{copy.noFixtures}</div>;
   }
 
   return (
@@ -305,16 +392,16 @@ export function ProdePredictions({ copy, fixtures, predictions, nowIso }: ProdeP
 
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {matchdays.map((matchday) => {
-            const isActive = selectedMatchdayKey === matchday.key;
+            const isActive = selectedMatchdayId === matchday.id;
             const pending = Math.max(0, matchday.editableCount - matchday.completedCount);
 
             return (
               <button
-                key={matchday.key}
+                key={matchday.id}
                 type="button"
                 onClick={() => {
                   setViewMode("matchday");
-                  setManualSelectedMatchdayKey(matchday.key);
+                  setManualSelectedMatchdayId(matchday.id);
                 }}
                 className={`rounded-xl border-2 px-3 py-2 text-left transition ${
                   isActive
@@ -331,7 +418,48 @@ export function ProdePredictions({ copy, fixtures, predictions, nowIso }: ProdeP
             );
           })}
         </div>
+
+        {selectedMatchday && viewMode === "matchday" ? (
+          <div className="panel-soft mt-3 p-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b5320]">{copy.doubleTitle}</p>
+            <p className="mt-1 text-xs text-[#5d6778]">{copy.doubleSubtitle}</p>
+
+            <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+              <select
+                value={selectedMatchdayDoubleValue}
+                onChange={(event) => updateDoubleDraft(event.target.value)}
+                disabled={selectedMatchdayDoubleLocked || isSavingDouble}
+                className="select-tech text-sm"
+              >
+                <option value="">{copy.doubleSelectPlaceholder}</option>
+                {selectedMatchday.fixtures.map((fixture) => (
+                  <option key={fixture.id} value={fixture.id}>
+                    {fixture.home_team_name} vs {fixture.away_team_name}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                type="button"
+                onClick={saveMatchdayDouble}
+                disabled={selectedMatchdayDoubleLocked || isSavingDouble}
+                className="btn-ghost px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSavingDouble ? copy.doubleSaving : copy.doubleSave}
+              </button>
+            </div>
+
+            {selectedDoubleFixture ? (
+              <p className="mt-2 text-xs text-[#5d6778]">
+                {copy.doubleCurrent}: {selectedDoubleFixture.home_team_name} vs {selectedDoubleFixture.away_team_name}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
+
+      {doubleError ? <p className="alert-error mt-3 rounded-lg p-3 text-sm">{doubleError}</p> : null}
+      {doubleInfo ? <p className="alert-success mt-3 rounded-lg p-3 text-sm">{doubleInfo}</p> : null}
 
       <div className="mt-4 flex items-center justify-between gap-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-[#64563a]">
@@ -346,6 +474,7 @@ export function ProdePredictions({ copy, fixtures, predictions, nowIso }: ProdeP
         {visibleFixtures.map((fixture) => {
           const isLocked =
             fixture.status !== "scheduled" || new Date(fixture.kickoff_at).getTime() <= nowTimestamp;
+          const isDoubleFixture = doubleDraftByMatchday[fixture.matchday_id] === fixture.id;
 
           return (
             <article key={fixture.id} className="panel-soft p-3 sm:p-3.5">
@@ -357,6 +486,11 @@ export function ProdePredictions({ copy, fixtures, predictions, nowIso }: ProdeP
                   <p className="text-xs text-[#6b7280]">{fixture.kickoff_label}</p>
                 </div>
                 <div className="flex items-center gap-1.5 sm:justify-end">
+                  {isDoubleFixture ? (
+                    <span className="rounded bg-[#1d2430] px-2 py-1 text-[11px] font-semibold text-[#ffe289]">
+                      {copy.doubleBadge}
+                    </span>
+                  ) : null}
                   <span
                     className={`rounded px-2 py-1 text-[11px] font-semibold ${
                       isLocked ? "bg-[#ececec] text-[#6b7280]" : "bg-[#9a6b00] text-white"
@@ -408,11 +542,7 @@ export function ProdePredictions({ copy, fixtures, predictions, nowIso }: ProdeP
           disabled={isSaving || visibleEditableFixtures.length === 0}
           className="btn-primary w-full px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isSaving
-            ? copy.saving
-            : viewMode === "all"
-              ? copy.saveCurrentView
-              : copy.saveThisMatchday}
+          {isSaving ? copy.saving : viewMode === "all" ? copy.saveCurrentView : copy.saveThisMatchday}
         </button>
         <button
           type="button"
@@ -426,4 +556,3 @@ export function ProdePredictions({ copy, fixtures, predictions, nowIso }: ProdeP
     </section>
   );
 }
-

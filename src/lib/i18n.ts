@@ -63,9 +63,9 @@ const UI_DICTIONARY: Record<AppLocale, UiDictionary> = {
       madeBy: "Hecho por",
     },
     localeLabel: {
-      es: "Espanol",
+      es: "Español",
       en: "English",
-      pt: "Portugues",
+      pt: "Português",
     },
     layout: {
       incompleteProfile: "Perfil incompleto",
@@ -73,8 +73,8 @@ const UI_DICTIONARY: Record<AppLocale, UiDictionary> = {
       missingField: {
         firstName: "nombre",
         lastName: "apellido",
-        phone: "telefono",
-        country: "pais",
+        phone: "teléfono",
+        country: "país",
       },
     },
     loading: {
@@ -83,7 +83,7 @@ const UI_DICTIONARY: Record<AppLocale, UiDictionary> = {
       rootSubtitle: "Estamos armando todo para que sigas compitiendo.",
       dashboardTitle: "Actualizando tu tablero",
       dashboardSubtitle: "Revisamos prode, ligas y posiciones en tiempo real.",
-      nextPlay: "Entrando a la proxima jugada...",
+      nextPlay: "Entrando a la próxima jugada...",
     },
   },
   en: {
@@ -103,9 +103,9 @@ const UI_DICTIONARY: Record<AppLocale, UiDictionary> = {
       madeBy: "Made by",
     },
     localeLabel: {
-      es: "Espanol",
+      es: "Español",
       en: "English",
-      pt: "Portugues",
+      pt: "Português",
     },
     layout: {
       incompleteProfile: "Incomplete profile",
@@ -143,9 +143,9 @@ const UI_DICTIONARY: Record<AppLocale, UiDictionary> = {
       madeBy: "Feito por",
     },
     localeLabel: {
-      es: "Espanol",
+      es: "Español",
       en: "English",
-      pt: "Portugues",
+      pt: "Português",
     },
     layout: {
       incompleteProfile: "Perfil incompleto",

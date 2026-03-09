@@ -24,7 +24,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Prode Mundial 2026",
-  description: "Prode del Mundial con ligas privadas y ranking por pais.",
+  description: "Prode del Mundial con ligas privadas y ranking por país.",
 };
 
 export default async function RootLayout({

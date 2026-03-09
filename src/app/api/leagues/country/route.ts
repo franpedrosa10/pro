@@ -19,8 +19,8 @@ function mapJoinCountryError(message: string) {
     return { status: 401, error: "No autenticado." };
   }
 
-  if (normalized.includes("completa tu pais")) {
-    return { status: 400, error: "Completa tu pais en Mi cuenta para unirte a la liga oficial." };
+  if (normalized.includes("completa tu pais") || normalized.includes("completa tu país")) {
+    return { status: 400, error: "Completá tu país en Mi cuenta para unirte a la liga oficial." };
   }
 
   return { status: 400, error: message };
@@ -44,7 +44,7 @@ export async function POST() {
 
   const row = (joinResult.data?.[0] as JoinCountryLeagueRow | undefined) ?? null;
   if (!row) {
-    return NextResponse.json({ error: "No se pudo resolver la liga oficial de tu pais." }, { status: 400 });
+    return NextResponse.json({ error: "No se pudo resolver la liga oficial de tu país." }, { status: 400 });
   }
 
   return NextResponse.json({

@@ -25,7 +25,7 @@ const COPY: Record<
   es: {
     chip: "Ligas",
     title: "Tus ligas",
-    subtitle: "Crea nuevas ligas, unite por codigo y revisa tus tablas privadas.",
+    subtitle: "Creá nuevas ligas, unite por código y revisá tus tablas privadas.",
     errorPrefix: "Error al cargar ligas:",
   },
   en: {

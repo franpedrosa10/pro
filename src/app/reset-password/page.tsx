@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
@@ -23,12 +23,12 @@ export default function ResetPasswordPage() {
     setInfo(null);
 
     if (password.length < 6) {
-      setError("La contrase\u00f1a debe tener al menos 6 caracteres.");
+      setError("La contraseña debe tener al menos 6 caracteres.");
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Las contrase\u00f1as no coinciden.");
+      setError("Las contraseñas no coinciden.");
       return;
     }
 
@@ -38,11 +38,11 @@ export default function ResetPasswordPage() {
     setIsPending(false);
 
     if (updateError) {
-      setError("No se pudo actualizar la contrase\u00f1a. Ped\u00ed un nuevo email de recuperaci\u00f3n e intent\u00e1 otra vez.");
+      setError("No se pudo actualizar la contraseña. Pedí un nuevo email de recuperación e intentá otra vez.");
       return;
     }
 
-    setInfo("Contrase\u00f1a actualizada. Redirigiendo al dashboard...");
+    setInfo("Contraseña actualizada. Redirigiendo al dashboard...");
     setTimeout(() => {
       router.push("/dashboard");
       router.refresh();
@@ -53,13 +53,13 @@ export default function ResetPasswordPage() {
     <main className="page-shell">
       <div className="app-container fade-in">
         <section className="panel mx-auto max-w-lg p-6 sm:p-7">
-          <p className="chip w-fit">Recuperaci\u00f3n</p>
-          <h1 className="mt-3 text-5xl leading-none sm:text-6xl">Nueva contrase\u00f1a</h1>
-          <p className="section-subtitle mt-2 text-sm">Eleg\u00ed una nueva contrase\u00f1a para tu cuenta.</p>
+          <p className="chip w-fit">Recuperación</p>
+          <h1 className="mt-3 text-4xl leading-none sm:text-5xl">Nueva contraseña</h1>
+          <p className="section-subtitle mt-2 text-sm">Elegí una nueva contraseña para tu cuenta.</p>
 
           <form onSubmit={handleSubmit} className="mt-5 space-y-4">
             <label className="block space-y-1 text-sm">
-              <span className="label-tech">Nueva contrase\u00f1a</span>
+              <span className="label-tech">Nueva contraseña</span>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -73,8 +73,8 @@ export default function ResetPasswordPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((current) => !current)}
-                  title={showPassword ? "Ocultar contrase\u00f1a" : "Ver contrase\u00f1a"}
-                  aria-label={showPassword ? "Ocultar contrase\u00f1a" : "Ver contrase\u00f1a"}
+                  title={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                  aria-label={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
                   className="input-eye-toggle absolute right-2 top-1/2 -translate-y-1/2"
                 >
                   {showPassword ? <EyeOff size={16} strokeWidth={2.1} /> : <Eye size={16} strokeWidth={2.1} />}
@@ -83,7 +83,7 @@ export default function ResetPasswordPage() {
             </label>
 
             <label className="block space-y-1 text-sm">
-              <span className="label-tech">Repet\u00ed la contrase\u00f1a</span>
+              <span className="label-tech">Repetí la contraseña</span>
               <div className="relative">
                 <input
                   type={showConfirmPassword ? "text" : "password"}
@@ -97,8 +97,8 @@ export default function ResetPasswordPage() {
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword((current) => !current)}
-                  title={showConfirmPassword ? "Ocultar contrase\u00f1a" : "Ver contrase\u00f1a"}
-                  aria-label={showConfirmPassword ? "Ocultar contrase\u00f1a" : "Ver contrase\u00f1a"}
+                  title={showConfirmPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                  aria-label={showConfirmPassword ? "Ocultar contraseña" : "Ver contraseña"}
                   className="input-eye-toggle absolute right-2 top-1/2 -translate-y-1/2"
                 >
                   {showConfirmPassword ? <EyeOff size={16} strokeWidth={2.1} /> : <Eye size={16} strokeWidth={2.1} />}
@@ -111,12 +111,12 @@ export default function ResetPasswordPage() {
               disabled={isPending}
               className="btn-primary w-full px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isPending ? "Guardando..." : "Guardar nueva contrase\u00f1a"}
+              {isPending ? "Guardando..." : "Guardar nueva contraseña"}
             </button>
           </form>
 
           <p className="mt-4 text-sm text-[#5c6675]">
-            Recordaste tu clave?{" "}
+            ¿Recordaste tu clave?{" "}
             <Link href="/login" className="link-inline">
               Volver al login
             </Link>

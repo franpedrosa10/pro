@@ -29,7 +29,7 @@ export async function PUT(request: Request) {
   const payload = await request.json().catch(() => null);
   const parseResult = predictionsSchema.safeParse(payload);
   if (!parseResult.success) {
-    return NextResponse.json({ error: "Formato de predicciones invalido." }, { status: 400 });
+    return NextResponse.json({ error: "Formato de predicciones inválido." }, { status: 400 });
   }
 
   const predictions = parseResult.data.predictions;
@@ -63,7 +63,7 @@ export async function PUT(request: Request) {
     const alreadyStarted = new Date(fixture.kickoffAt).getTime() <= Date.now();
     if (fixture.status !== "scheduled" || alreadyStarted) {
       return NextResponse.json(
-        { error: "Hay partidos bloqueados. Solo podes editar partidos futuros." },
+        { error: "Hay partidos bloqueados. Solo podés editar partidos futuros." },
         { status: 400 },
       );
     }

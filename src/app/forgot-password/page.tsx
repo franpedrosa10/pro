@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
       <div className="app-container fade-in">
         <section className="panel mx-auto max-w-lg p-6 sm:p-7">
           <p className="chip w-fit">Acceso</p>
-          <h1 className="mt-3 text-5xl leading-none sm:text-6xl">Recuperar contraseña</h1>
+          <h1 className="mt-3 text-4xl leading-none sm:text-5xl">Recuperar contraseña</h1>
           <p className="section-subtitle mt-2 text-sm">
             Ingresá tu email y te mandamos un link para crear una nueva contraseña.
           </p>
@@ -85,4 +85,3 @@ export default function ForgotPasswordPage() {
     </main>
   );
 }
-

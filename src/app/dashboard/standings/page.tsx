@@ -29,6 +29,32 @@ function parseStringParam(value: string | string[] | undefined): string | null {
   return value;
 }
 
+function buildDisplayName(profile: {
+  first_name?: string | null;
+  last_name?: string | null;
+  display_name?: string | null;
+  username?: string | null;
+}) {
+  const firstName = (profile.first_name ?? "").trim();
+  const lastName = (profile.last_name ?? "").trim();
+  const fullName = `${firstName} ${lastName}`.trim();
+  if (fullName) {
+    return fullName;
+  }
+
+  const displayName = (profile.display_name ?? "").trim();
+  if (displayName) {
+    return displayName;
+  }
+
+  const username = (profile.username ?? "").trim();
+  if (username) {
+    return username;
+  }
+
+  return "Jugador";
+}
+
 export default async function StandingsPage({ searchParams }: StandingsPageProps) {
   const { supabase, user } = await requireUser();
   const params = await searchParams;
@@ -71,7 +97,7 @@ export default async function StandingsPage({ searchParams }: StandingsPageProps
 
   const profilesResult = await supabase
     .from("profiles")
-    .select("id, display_name, username, country_code, country_name");
+    .select("id, first_name, last_name, display_name, username, country_code, country_name");
 
   if (profilesResult.error) {
     schemaError = schemaError ?? profilesResult.error.message;
@@ -114,10 +140,12 @@ export default async function StandingsPage({ searchParams }: StandingsPageProps
       const userId = profile.id as string;
       return {
         userId,
-        displayName:
-          (profile.display_name as string | null) ||
-          (profile.username as string | null) ||
-          "Jugador",
+        displayName: buildDisplayName({
+          first_name: profile.first_name as string | null,
+          last_name: profile.last_name as string | null,
+          display_name: profile.display_name as string | null,
+          username: profile.username as string | null,
+        }),
         countryCode: (profile.country_code as string | null) ?? null,
         countryName: (profile.country_name as string | null) ?? null,
         points: pointsByUserId.get(userId) ?? 0,
@@ -161,12 +189,12 @@ export default async function StandingsPage({ searchParams }: StandingsPageProps
           </label>
 
           <label className="space-y-1 text-sm">
-            <span className="label-tech block">Pais</span>
+            <span className="label-tech block">País</span>
             <select name="country" defaultValue={requestedCountryCode ?? ""} className="select-tech">
-              <option value="">Todos los paises</option>
+              <option value="">Todos los países</option>
               {myCountryCode ? (
                 <option value={myCountryCode}>
-                  Mi pais ({myCountryName ?? myCountryCode})
+                  Mi país ({myCountryName ?? myCountryCode})
                 </option>
               ) : null}
               {countryOptions.filter((country) => country.code !== myCountryCode).map((country) => (
@@ -192,7 +220,7 @@ export default async function StandingsPage({ searchParams }: StandingsPageProps
           Mostrando:{" "}
           <span className="font-semibold text-[#1f2937]">
             {selectedMatchday ? selectedMatchday.name : "Acumulado general"}
-            {requestedCountryCode ? ` | Pais ${requestedCountryCode}` : ""}
+            {requestedCountryCode ? ` | País ${requestedCountryCode}` : ""}
           </span>
         </p>
       </section>
@@ -201,7 +229,7 @@ export default async function StandingsPage({ searchParams }: StandingsPageProps
 
       <section className="panel p-5">
         {rows.length === 0 ? (
-          <p className="section-subtitle text-sm">Todavia no hay puntajes para esta vista.</p>
+          <p className="section-subtitle text-sm">Todavía no hay puntajes para esta vista.</p>
         ) : (
           <div className="table-shell">
             <table className="w-full border-collapse text-sm">
@@ -209,7 +237,7 @@ export default async function StandingsPage({ searchParams }: StandingsPageProps
                 <tr className="text-left">
                   <th className="px-3 py-2">#</th>
                   <th className="px-3 py-2">Jugador</th>
-                  <th className="px-3 py-2">Pais</th>
+                  <th className="px-3 py-2">País</th>
                   <th className="px-3 py-2">Puntos</th>
                 </tr>
               </thead>

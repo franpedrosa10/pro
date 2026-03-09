@@ -54,10 +54,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <main className="page-shell">
-      <div className="app-container grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.82fr)]">
-        <section className="panel-strong p-6 sm:p-7">
+      <div className="app-container grid gap-5 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,0.78fr)]">
+        <section className="panel-strong max-w-[640px] p-6 sm:p-7">
           <p className="chip w-fit">{COPY.chip}</p>
-          <h1 className="mt-3 max-w-[12ch] text-5xl leading-[0.95] sm:text-6xl">{COPY.title}</h1>
+          <h1 className="mt-3 max-w-[12ch] text-4xl leading-[0.95] sm:text-5xl">{COPY.title}</h1>
           <p className="section-subtitle mt-3 max-w-xl text-sm sm:text-base">{COPY.subtitle}</p>
 
           <div className="mt-5 flex flex-wrap gap-2">

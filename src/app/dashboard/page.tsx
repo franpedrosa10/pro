@@ -47,11 +47,6 @@ function buildDisplayName(profile: {
     return username;
   }
 
-  const shortId = String(profile.id ?? "").replace(/-/g, "").slice(0, 6);
-  if (shortId) {
-    return `Jugador ${shortId}`;
-  }
-
   return "Jugador";
 }
 
@@ -97,28 +92,28 @@ const COPY: Record<
     ctaProde: "Cargar prode",
     ctaStandings: "Resultados globales",
     ctaLeagues: "Mis ligas",
-    schemaError: "El esquema de Supabase todavia no esta aplicado o hay un error:",
+    schemaError: "El esquema de Supabase todavía no está aplicado o hay un error:",
     kpiProde: "Puntaje Prode",
-    kpiPosition: "Posicion global",
+    kpiPosition: "Posición global",
     noRank: "sin ranking",
     viewRanking: "Ver ranking",
     kpiPending: "Pendientes",
-    kpiPendingMeta: "Partidos pendientes de pronostico.",
-    loadPredictions: "Cargar pronosticos",
+    kpiPendingMeta: "Partidos pendientes de pronóstico.",
+    loadPredictions: "Cargar pronósticos",
     kpiLeagues: "Ligas",
     kpiLeaguesMeta: "Privadas activas en tu cuenta.",
-    country: "Pais",
+    country: "País",
     completeProfile: "completa tu perfil",
     manageLeagues: "Gestionar ligas",
     topGlobal: "Top global Prode",
     fullTable: "Ver tabla completa",
-    noScores: "Todavia no hay puntajes publicados.",
-    countryLeague: "Liga por pais",
-    completeCountry: "Completa tu pais en Mi cuenta para activar esta tabla.",
-    noCountryScores: "Todavia no hay puntajes cargados para",
+    noScores: "Todavía no hay puntajes publicados.",
+    countryLeague: "Liga por país",
+    completeCountry: "Completá tu país en Mi cuenta para activar esta tabla.",
+    noCountryScores: "Todavía no hay puntajes cargados para",
     tableRank: "#",
     tablePlayer: "Jugador",
-    tableCountry: "Pais",
+    tableCountry: "País",
     tablePoints: "Puntos",
     you: "Vos",
   },

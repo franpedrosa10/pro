@@ -25,8 +25,8 @@ function mapJoinError(message: string) {
     return { status: 401, error: "No autenticado." };
   }
 
-  if (normalized.includes("codigo invalido")) {
-    return { status: 400, error: "Codigo invalido." };
+  if (normalized.includes("codigo invalido") || normalized.includes("código inválido")) {
+    return { status: 400, error: "Código inválido." };
   }
 
   if (normalized.includes("liga no encontrada")) {
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
   const payload = await request.json().catch(() => null);
   const parseResult = joinLeagueSchema.safeParse(payload);
   if (!parseResult.success) {
-    return NextResponse.json({ error: "Codigo invalido." }, { status: 400 });
+    return NextResponse.json({ error: "Código inválido." }, { status: 400 });
   }
 
   const { joinCode } = parseResult.data;

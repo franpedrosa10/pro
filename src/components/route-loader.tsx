@@ -7,10 +7,10 @@ type RouteLoaderProps = {
 };
 
 export function RouteLoader({
-  title = "Estamos preparando la proxima pantalla",
+  title = "Estamos preparando la próxima pantalla",
   subtitle = "Sincronizando datos de tu competencia...",
   chipLabel = "Cargando",
-  nextPlayLabel = "Entrando a la proxima jugada...",
+  nextPlayLabel = "Entrando a la próxima jugada...",
   compact = false,
 }: RouteLoaderProps) {
   return (

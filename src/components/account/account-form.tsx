@@ -33,11 +33,11 @@ const COPY: Record<
 > = {
   es: {
     title: "Datos personales",
-    subtitle: "Edita la informacion usada en tu cuenta y tablas.",
+    subtitle: "Editá la información usada en tu cuenta y tablas.",
     firstName: "Nombre",
     lastName: "Apellido",
-    phone: "Telefono",
-    country: "Pais",
+    phone: "Teléfono",
+    country: "País",
     email: "Email",
     saving: "Guardando...",
     save: "Guardar cambios",

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { getCountryNameByCode } from "@/lib/domain/countries";
@@ -24,7 +24,7 @@ export async function PUT(request: Request) {
   const payload = await request.json().catch(() => null);
   const parseResult = profileSchema.safeParse(payload);
   if (!parseResult.success) {
-    return NextResponse.json({ error: "Datos de perfil invalidos." }, { status: 400 });
+    return NextResponse.json({ error: "Datos de perfil inválidos." }, { status: 400 });
   }
 
   const firstName = parseResult.data.firstName;
@@ -33,21 +33,24 @@ export async function PUT(request: Request) {
   const countryCode = parseResult.data.countryCode;
   const countryName = getCountryNameByCode(countryCode);
   if (!countryName) {
-    return NextResponse.json({ error: "Pais invalido." }, { status: 400 });
+    return NextResponse.json({ error: "País inválido." }, { status: 400 });
   }
   const displayName = `${firstName} ${lastName}`.trim();
 
   const profileResult = await supabase
     .from("profiles")
-    .upsert({
-      id: user.id,
-      first_name: firstName,
-      last_name: lastName,
-      phone,
-      country_code: countryCode,
-      country_name: countryName,
-      display_name: displayName,
-    }, { onConflict: "id" })
+    .upsert(
+      {
+        id: user.id,
+        first_name: firstName,
+        last_name: lastName,
+        phone,
+        country_code: countryCode,
+        country_name: countryName,
+        display_name: displayName,
+      },
+      { onConflict: "id" },
+    )
     .select("id")
     .single();
 

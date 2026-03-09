@@ -172,18 +172,18 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
             <p className="chip w-fit">Liga privada</p>
             <h1 className="mt-2 text-5xl leading-none sm:text-6xl">{leagueResult.data.name}</h1>
             <p className="section-subtitle mt-2 text-sm">
-              Codigo de ingreso:{" "}
+              Código de ingreso:{" "}
               <span className="rounded bg-[#1d2430] px-2 py-1 font-mono text-xs text-[#ffe289]">
                 {leagueResult.data.join_code}
               </span>
             </p>
             <p className="mt-2 text-xs text-[#4c5564]">
-              Link de invitacion: <span className="font-mono">{invitePath}</span>
+              Link de invitación: <span className="font-mono">{invitePath}</span>
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link href={invitePath} className="btn-ghost px-3 py-2 text-sm">
-              Invitacion
+              Invitación
             </Link>
             <Link href="/dashboard/leagues" className="btn-ghost px-3 py-2 text-sm">
               Ligas
@@ -229,7 +229,7 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
 
       <section className="panel p-5">
         {rows.length === 0 ? (
-          <p className="section-subtitle text-sm">Todavia no hay miembros o puntajes para esta vista.</p>
+          <p className="section-subtitle text-sm">Todavía no hay miembros o puntajes para esta vista.</p>
         ) : (
           <div className="table-shell">
             <table className="w-full border-collapse text-sm">
@@ -237,7 +237,7 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
                 <tr className="text-left">
                   <th className="px-3 py-2">#</th>
                   <th className="px-3 py-2">Jugador</th>
-                  <th className="px-3 py-2">Pais</th>
+                  <th className="px-3 py-2">País</th>
                   <th className="px-3 py-2">Puntos</th>
                 </tr>
               </thead>

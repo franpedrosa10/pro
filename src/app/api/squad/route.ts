@@ -34,7 +34,7 @@ export async function PUT(request: Request) {
   const payload = await request.json().catch(() => null);
   const parseResult = squadSchema.safeParse(payload);
   if (!parseResult.success) {
-    return NextResponse.json({ error: "Formato de plantel invalido." }, { status: 400 });
+    return NextResponse.json({ error: "Formato de plantel inválido." }, { status: 400 });
   }
 
   const { formationCode, players: selections } = parseResult.data;

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
@@ -199,7 +199,7 @@ export function AuthForm({ nextPath = "/dashboard", initialError = null }: AuthF
         <span className="chip">Acceso</span>
       </div>
 
-      <h2 className="mt-2 text-4xl leading-none text-[#1f2937]">
+      <h2 className="mt-2 text-3xl leading-none text-[#1f2937] sm:text-4xl">
         {mode === "login" ? "Iniciar sesión" : "Crear cuenta"}
       </h2>
       <p className="section-subtitle mt-2">

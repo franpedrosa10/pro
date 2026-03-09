@@ -17,6 +17,7 @@ begin
     nullif(new.raw_user_meta_data ->> 'username', ''),
     coalesce(
       nullif(new.raw_user_meta_data ->> 'display_name', ''),
+      nullif(new.raw_user_meta_data ->> 'full_name', ''),
       concat_ws(
         ' ',
         nullif(new.raw_user_meta_data ->> 'first_name', ''),
@@ -28,14 +29,48 @@ begin
     nullif(new.raw_user_meta_data ->> 'last_name', ''),
     nullif(new.raw_user_meta_data ->> 'phone', '')
   )
-  on conflict (id) do nothing;
+  on conflict (id) do update
+  set
+    username = coalesce(nullif(public.profiles.username, ''), excluded.username),
+    display_name = coalesce(nullif(public.profiles.display_name, ''), excluded.display_name),
+    first_name = coalesce(nullif(public.profiles.first_name, ''), excluded.first_name),
+    last_name = coalesce(nullif(public.profiles.last_name, ''), excluded.last_name),
+    phone = coalesce(nullif(public.profiles.phone, ''), excluded.phone);
   return new;
 end;
 $$;
 
-update public.profiles
-set display_name = trim(concat_ws(' ', first_name, last_name))
-where coalesce(display_name, '') = ''
-  and (coalesce(first_name, '') <> '' or coalesce(last_name, '') <> '');
+update public.profiles p
+set
+  username = coalesce(
+    nullif(p.username, ''),
+    nullif(u.raw_user_meta_data ->> 'username', '')
+  ),
+  first_name = coalesce(
+    nullif(p.first_name, ''),
+    nullif(u.raw_user_meta_data ->> 'first_name', '')
+  ),
+  last_name = coalesce(
+    nullif(p.last_name, ''),
+    nullif(u.raw_user_meta_data ->> 'last_name', '')
+  ),
+  display_name = coalesce(
+    nullif(p.display_name, ''),
+    nullif(u.raw_user_meta_data ->> 'display_name', ''),
+    nullif(u.raw_user_meta_data ->> 'full_name', ''),
+    nullif(trim(concat_ws(' ',
+      nullif(u.raw_user_meta_data ->> 'first_name', ''),
+      nullif(u.raw_user_meta_data ->> 'last_name', '')
+    )), ''),
+    split_part(u.email, '@', 1)
+  )
+from auth.users u
+where p.id = u.id
+  and (
+    coalesce(nullif(p.username, ''), '') = ''
+    or coalesce(nullif(p.first_name, ''), '') = ''
+    or coalesce(nullif(p.last_name, ''), '') = ''
+    or coalesce(nullif(p.display_name, ''), '') = ''
+  );
 
 commit;
