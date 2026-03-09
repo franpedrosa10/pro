@@ -44,32 +44,6 @@ const COPY: Record<
     saveError: "No se pudo actualizar el perfil.",
     saveOk: "Perfil actualizado.",
   },
-  en: {
-    title: "Personal data",
-    subtitle: "Edit account information used in standings and leagues.",
-    firstName: "First name",
-    lastName: "Last name",
-    phone: "Phone",
-    country: "Country",
-    email: "Email",
-    saving: "Saving...",
-    save: "Save changes",
-    saveError: "Could not update profile.",
-    saveOk: "Profile updated.",
-  },
-  pt: {
-    title: "Dados pessoais",
-    subtitle: "Edite as informacoes usadas na conta e nas tabelas.",
-    firstName: "Nome",
-    lastName: "Sobrenome",
-    phone: "Telefone",
-    country: "Pais",
-    email: "Email",
-    saving: "Salvando...",
-    save: "Salvar alteracoes",
-    saveError: "Nao foi possivel atualizar o perfil.",
-    saveOk: "Perfil atualizado.",
-  },
 };
 
 export function AccountForm({ locale, email, initialFirstName, initialLastName, initialPhone, initialCountryCode }: AccountFormProps) {

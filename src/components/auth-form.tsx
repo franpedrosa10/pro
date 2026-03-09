@@ -6,13 +6,11 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { COUNTRIES, getCountryNameByCode } from "@/lib/domain/countries";
-import type { AppLocale } from "@/lib/i18n";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type AuthMode = "login" | "signup";
 
 type AuthFormProps = {
-  locale?: AppLocale;
   nextPath?: string;
   initialError?: string | null;
 };

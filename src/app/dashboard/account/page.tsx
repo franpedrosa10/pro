@@ -18,16 +18,6 @@ const COPY: Record<
     title: "Perfil",
     subtitle: "Mantene tu informacion al dia para ligas y posiciones.",
   },
-  en: {
-    chip: "My account",
-    title: "Profile",
-    subtitle: "Keep your data up to date for leagues and standings.",
-  },
-  pt: {
-    chip: "Minha conta",
-    title: "Perfil",
-    subtitle: "Mantenha seus dados atualizados para ligas e classificacoes.",
-  },
 };
 
 export default async function AccountPage() {

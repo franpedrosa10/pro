@@ -64,16 +64,14 @@ type ProdePredictionsProps = {
     saveCurrentView: string;
     saveAll: string;
     saving: string;
-    doubleTitle: string;
-    doubleSubtitle: string;
-    doubleSelectPlaceholder: string;
-    doubleSave: string;
+    doubleMark: string;
+    doubleRemove: string;
     doubleSaving: string;
     doubleUpdated: string;
     doubleCleared: string;
     doubleSaveErrorFallback: string;
-    doubleCurrent: string;
     doubleBadge: string;
+    doubleOnePerMatchday: string;
   };
   fixtures: FixtureRow[];
   predictions: ExistingPrediction[];
@@ -104,7 +102,7 @@ export function ProdePredictions({ copy, fixtures, predictions, initialDoubles, 
     return initial;
   });
 
-  const [doubleDraftByMatchday, setDoubleDraftByMatchday] = useState<Record<string, string>>(() => {
+  const [doubleByMatchday, setDoubleByMatchday] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {};
     for (const row of initialDoubles) {
       initial[row.matchdayId] = row.fixtureId;
@@ -117,6 +115,7 @@ export function ProdePredictions({ copy, fixtures, predictions, initialDoubles, 
   const [saveInfo, setSaveInfo] = useState<string | null>(null);
 
   const [isSavingDouble, setIsSavingDouble] = useState(false);
+  const [savingDoubleFixtureId, setSavingDoubleFixtureId] = useState<string | null>(null);
   const [doubleError, setDoubleError] = useState<string | null>(null);
   const [doubleInfo, setDoubleInfo] = useState<string | null>(null);
 
@@ -230,14 +229,6 @@ export function ProdePredictions({ copy, fixtures, predictions, initialDoubles, 
     [visibleFixtures, editableFixtureIds],
   );
 
-  const selectedMatchdayDoubleValue = selectedMatchday ? (doubleDraftByMatchday[selectedMatchday.id] ?? "") : "";
-  const selectedMatchdayDoubleLocked =
-    selectedMatchday ? new Date(selectedMatchday.lockAt).getTime() <= nowTimestamp : true;
-
-  const selectedDoubleFixture = selectedMatchday
-    ? selectedMatchday.fixtures.find((fixture) => fixture.id === selectedMatchdayDoubleValue) ?? null
-    : null;
-
   function updatePrediction(fixtureId: string, side: "predictedHome" | "predictedAway", value: string) {
     if (!/^\d*$/.test(value)) {
       return;
@@ -255,50 +246,36 @@ export function ProdePredictions({ copy, fixtures, predictions, initialDoubles, 
     });
   }
 
-  function updateDoubleDraft(value: string) {
-    if (!selectedMatchday) {
-      return;
-    }
-
-    setDoubleDraftByMatchday((current) => ({
-      ...current,
-      [selectedMatchday.id]: value,
-    }));
-  }
-
-  async function saveMatchdayDouble() {
-    if (!selectedMatchday) {
-      return;
-    }
-
+  async function saveMatchdayDouble(matchdayId: string, fixtureId: string | null) {
     setDoubleError(null);
     setDoubleInfo(null);
     setIsSavingDouble(true);
-
-    const fixtureId = selectedMatchdayDoubleValue || null;
+    setSavingDoubleFixtureId(fixtureId ?? (doubleByMatchday[matchdayId] ?? null));
 
     const response = await fetch("/api/prode/double", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        matchdayId: selectedMatchday.id,
+        matchdayId,
         fixtureId,
       }),
     });
     const result = await response.json();
+
     setIsSavingDouble(false);
+    setSavingDoubleFixtureId(null);
 
     if (!response.ok) {
       setDoubleError(result.error ?? copy.doubleSaveErrorFallback);
       return;
     }
 
-    setDoubleDraftByMatchday((current) => {
+    setDoubleByMatchday((current) => {
       const next = { ...current };
       if (result.fixtureId) {
-        next[selectedMatchday.id] = result.fixtureId as string;
+        next[matchdayId] = result.fixtureId as string;
       } else {
-        delete next[selectedMatchday.id];
+        delete next[matchdayId];
       }
       return next;
     });
@@ -364,7 +341,7 @@ export function ProdePredictions({ copy, fixtures, predictions, initialDoubles, 
       <h2 className="text-3xl leading-none sm:text-4xl">{copy.title}</h2>
       <p className="section-subtitle mt-2 text-sm">{copy.subtitle}</p>
 
-      <div className="mt-4 rounded-xl border-2 border-[#1d2430] bg-[#fff7dd] p-3">
+      <div className="mt-4 space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -388,12 +365,16 @@ export function ProdePredictions({ copy, fixtures, predictions, initialDoubles, 
           >
             {copy.modeAll}
           </button>
+          <span className="rounded-lg border-2 border-[#1d2430] bg-[#fffef8] px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#64563a]">
+            {copy.doubleOnePerMatchday}
+          </span>
         </div>
 
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <div className="flex gap-1.5 overflow-x-auto pb-1">
           {matchdays.map((matchday) => {
             const isActive = selectedMatchdayId === matchday.id;
             const pending = Math.max(0, matchday.editableCount - matchday.completedCount);
+            const hasDouble = Boolean(doubleByMatchday[matchday.id]);
 
             return (
               <button
@@ -403,59 +384,28 @@ export function ProdePredictions({ copy, fixtures, predictions, initialDoubles, 
                   setViewMode("matchday");
                   setManualSelectedMatchdayId(matchday.id);
                 }}
-                className={`rounded-xl border-2 px-3 py-2 text-left transition ${
+                className={`min-w-[170px] rounded-lg border-2 px-2.5 py-2 text-left transition ${
                   isActive
                     ? "border-[#1d2430] bg-[#ffe289]"
                     : "border-[#1d2430] bg-[#fffef8] hover:bg-[#fff0c2]"
                 }`}
               >
-                <p className="text-sm font-bold text-[#1f2937]">{matchday.name}</p>
-                <p className="mt-0.5 text-xs text-[#5d6778]">
+                <div className="flex items-center justify-between gap-1.5">
+                  <p className="truncate text-xs font-bold text-[#1f2937]">{matchday.name}</p>
+                  {hasDouble ? (
+                    <span className="rounded bg-[#1d2430] px-1.5 py-0.5 text-[10px] font-semibold text-[#ffe289]">
+                      {copy.doubleBadge}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-0.5 text-[11px] text-[#5d6778]">
                   {matchday.completedCount}/{matchday.fixtures.length} {copy.loadedSuffix}
-                  {matchday.editableCount > 0 ? ` - ${pending} ${copy.pendingSuffix}` : ` - ${copy.closed}`}
+                  {matchday.editableCount > 0 ? ` · ${pending} ${copy.pendingSuffix}` : ` · ${copy.closed}`}
                 </p>
               </button>
             );
           })}
         </div>
-
-        {selectedMatchday && viewMode === "matchday" ? (
-          <div className="panel-soft mt-3 p-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b5320]">{copy.doubleTitle}</p>
-            <p className="mt-1 text-xs text-[#5d6778]">{copy.doubleSubtitle}</p>
-
-            <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-              <select
-                value={selectedMatchdayDoubleValue}
-                onChange={(event) => updateDoubleDraft(event.target.value)}
-                disabled={selectedMatchdayDoubleLocked || isSavingDouble}
-                className="select-tech text-sm"
-              >
-                <option value="">{copy.doubleSelectPlaceholder}</option>
-                {selectedMatchday.fixtures.map((fixture) => (
-                  <option key={fixture.id} value={fixture.id}>
-                    {fixture.home_team_name} vs {fixture.away_team_name}
-                  </option>
-                ))}
-              </select>
-
-              <button
-                type="button"
-                onClick={saveMatchdayDouble}
-                disabled={selectedMatchdayDoubleLocked || isSavingDouble}
-                className="btn-ghost px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isSavingDouble ? copy.doubleSaving : copy.doubleSave}
-              </button>
-            </div>
-
-            {selectedDoubleFixture ? (
-              <p className="mt-2 text-xs text-[#5d6778]">
-                {copy.doubleCurrent}: {selectedDoubleFixture.home_team_name} vs {selectedDoubleFixture.away_team_name}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
       </div>
 
       {doubleError ? <p className="alert-error mt-3 rounded-lg p-3 text-sm">{doubleError}</p> : null}
@@ -472,9 +422,12 @@ export function ProdePredictions({ copy, fixtures, predictions, initialDoubles, 
 
       <div className="mt-2 space-y-2.5">
         {visibleFixtures.map((fixture) => {
-          const isLocked =
-            fixture.status !== "scheduled" || new Date(fixture.kickoff_at).getTime() <= nowTimestamp;
-          const isDoubleFixture = doubleDraftByMatchday[fixture.matchday_id] === fixture.id;
+          const fixtureKickoffTs = new Date(fixture.kickoff_at).getTime();
+          const matchdayLockTs = new Date(fixture.matchday_lock_at).getTime();
+
+          const isLocked = fixture.status !== "scheduled" || fixtureKickoffTs <= nowTimestamp;
+          const isDoubleFixture = doubleByMatchday[fixture.matchday_id] === fixture.id;
+          const canToggleDouble = fixture.status === "scheduled" && fixtureKickoffTs > nowTimestamp && matchdayLockTs > nowTimestamp;
 
           return (
             <article key={fixture.id} className="panel-soft p-3 sm:p-3.5">
@@ -485,7 +438,7 @@ export function ProdePredictions({ copy, fixtures, predictions, initialDoubles, 
                   </p>
                   <p className="text-xs text-[#6b7280]">{fixture.kickoff_label}</p>
                 </div>
-                <div className="flex items-center gap-1.5 sm:justify-end">
+                <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
                   {isDoubleFixture ? (
                     <span className="rounded bg-[#1d2430] px-2 py-1 text-[11px] font-semibold text-[#ffe289]">
                       {copy.doubleBadge}
@@ -503,6 +456,22 @@ export function ProdePredictions({ copy, fixtures, predictions, initialDoubles, 
                       {copy.finalPrefix}: {fixture.home_score}-{fixture.away_score}
                     </span>
                   ) : null}
+                  <button
+                    type="button"
+                    onClick={() => saveMatchdayDouble(fixture.matchday_id, isDoubleFixture ? null : fixture.id)}
+                    disabled={!canToggleDouble || isSavingDouble}
+                    className={`rounded border-2 px-2 py-1 text-[11px] font-semibold disabled:cursor-not-allowed disabled:opacity-60 ${
+                      isDoubleFixture
+                        ? "border-[#1d2430] bg-[#ffd447] text-[#2f2407]"
+                        : "border-[#1d2430] bg-[#fffef8] text-[#3f3315]"
+                    }`}
+                  >
+                    {isSavingDouble && savingDoubleFixtureId === fixture.id
+                      ? copy.doubleSaving
+                      : isDoubleFixture
+                        ? copy.doubleRemove
+                        : copy.doubleMark}
+                  </button>
                 </div>
               </div>
 

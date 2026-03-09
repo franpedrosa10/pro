@@ -33,8 +33,9 @@ Direccion de producto actual:
   - Edicion permitida solo antes del kickoff
   - Guardado batch por API (`PUT /api/prode/predictions`)
   - UI por fecha (selector de matchday) con opcion de vista completa
+  - Selector de fechas compacto (chips horizontales)
   - Guardado por fecha actual y guardado global
-  - `x2 por fecha` (1 partido por fecha, bloquea al inicio de la fecha)
+  - `x2 por fecha` desde cada card de partido (1 partido por fecha, bloquea al inicio de la fecha)
   - Eleccion de `campeon/subcampeon` (bloquea al cierre de fase de grupos)
 - Ligas privadas:
   - Crear liga
@@ -52,8 +53,8 @@ Direccion de producto actual:
   - copyright
   - credito con link a portfolio de Francisco Pedrosa
 - i18n:
-  - textos base en `es`, `en`, `pt`
-  - locale server-side actual: `es` (default)
+  - idioma unico: `es`
+  - locale server-side fijo en `es`
 
 ## Nota sobre Fantasy
 
@@ -92,7 +93,6 @@ Incluye:
 - `POST /api/leagues`
 - `POST /api/leagues/join`
 - `POST /api/leagues/country`
-- `POST /api/locale`
 - `PUT /api/prode/double`
 - `PUT /api/prode/podium`
 - `PUT /api/prode/predictions`

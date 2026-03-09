@@ -25,20 +25,8 @@ const COPY: Record<
   es: {
     chip: "Ligas",
     title: "Tus ligas",
-    subtitle: "Creá nuevas ligas, unite por código y revisá tus tablas privadas.",
+    subtitle: "Crea nuevas ligas, unite por codigo y revisa tus tablas privadas.",
     errorPrefix: "Error al cargar ligas:",
-  },
-  en: {
-    chip: "Leagues",
-    title: "Your leagues",
-    subtitle: "Create leagues, join by code and review private standings.",
-    errorPrefix: "Error loading leagues:",
-  },
-  pt: {
-    chip: "Ligas",
-    title: "Suas ligas",
-    subtitle: "Crie ligas, entre por codigo e acompanhe tabelas privadas.",
-    errorPrefix: "Erro ao carregar ligas:",
   },
 };
 
