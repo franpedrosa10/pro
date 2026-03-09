@@ -370,7 +370,7 @@ export function ProdePredictions({ copy, fixtures, predictions, initialDoubles, 
           </span>
         </div>
 
-        <div className="flex gap-1.5 overflow-x-auto pb-1">
+        <div className="scroll-hover-x flex gap-1.5 pb-1">
           {matchdays.map((matchday) => {
             const isActive = selectedMatchdayId === matchday.id;
             const pending = Math.max(0, matchday.editableCount - matchday.completedCount);
@@ -393,8 +393,8 @@ export function ProdePredictions({ copy, fixtures, predictions, initialDoubles, 
                 <div className="flex items-center justify-between gap-1.5">
                   <p className="truncate text-xs font-bold text-[#1f2937]">{matchday.name}</p>
                   {hasDouble ? (
-                    <span className="rounded bg-[#1d2430] px-1.5 py-0.5 text-[10px] font-semibold text-[#ffe289]">
-                      {copy.doubleBadge}
+                    <span className="x2-chip px-1.5 py-0.5 text-[10px] font-semibold">
+                      ★ {copy.doubleBadge}
                     </span>
                   ) : null}
                 </div>
@@ -440,8 +440,8 @@ export function ProdePredictions({ copy, fixtures, predictions, initialDoubles, 
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
                   {isDoubleFixture ? (
-                    <span className="rounded bg-[#1d2430] px-2 py-1 text-[11px] font-semibold text-[#ffe289]">
-                      {copy.doubleBadge}
+                    <span className="x2-chip px-2 py-1 text-[11px] font-semibold">
+                      ★ {copy.doubleBadge}
                     </span>
                   ) : null}
                   <span
@@ -460,17 +460,14 @@ export function ProdePredictions({ copy, fixtures, predictions, initialDoubles, 
                     type="button"
                     onClick={() => saveMatchdayDouble(fixture.matchday_id, isDoubleFixture ? null : fixture.id)}
                     disabled={!canToggleDouble || isSavingDouble}
-                    className={`rounded border-2 px-2 py-1 text-[11px] font-semibold disabled:cursor-not-allowed disabled:opacity-60 ${
-                      isDoubleFixture
-                        ? "border-[#1d2430] bg-[#ffd447] text-[#2f2407]"
-                        : "border-[#1d2430] bg-[#fffef8] text-[#3f3315]"
+                    aria-label={isDoubleFixture ? copy.doubleRemove : copy.doubleMark}
+                    className={`x2-star-btn disabled:cursor-not-allowed disabled:opacity-60 ${
+                      isDoubleFixture ? "x2-star-btn-active" : "x2-star-btn-idle"
                     }`}
                   >
-                    {isSavingDouble && savingDoubleFixtureId === fixture.id
-                      ? copy.doubleSaving
-                      : isDoubleFixture
-                        ? copy.doubleRemove
-                        : copy.doubleMark}
+                    <span className="x2-star-core">
+                      {isSavingDouble && savingDoubleFixtureId === fixture.id ? "..." : "X2"}
+                    </span>
                   </button>
                 </div>
               </div>

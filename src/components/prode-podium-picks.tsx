@@ -31,6 +31,13 @@ type ProdePodiumPicksProps = {
   nowIso: string;
 };
 
+function normalizeText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 export function ProdePodiumPicks({
   copy,
   teams,
@@ -42,6 +49,8 @@ export function ProdePodiumPicks({
 }: ProdePodiumPicksProps) {
   const [championTeamId, setChampionTeamId] = useState(initialChampionTeamId ?? "");
   const [runnerUpTeamId, setRunnerUpTeamId] = useState(initialRunnerUpTeamId ?? "");
+  const [championSearch, setChampionSearch] = useState("");
+  const [runnerUpSearch, setRunnerUpSearch] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -53,6 +62,38 @@ export function ProdePodiumPicks({
 
   const currentChampionName = teams.find((team) => team.id === championTeamId)?.name ?? null;
   const currentRunnerUpName = teams.find((team) => team.id === runnerUpTeamId)?.name ?? null;
+
+  const championOptions = useMemo(() => {
+    const query = normalizeText(championSearch.trim());
+    const filtered = query
+      ? teams.filter((team) => normalizeText(team.name).includes(query))
+      : teams;
+
+    if (championTeamId && !filtered.some((team) => team.id === championTeamId)) {
+      const selected = teams.find((team) => team.id === championTeamId);
+      if (selected) {
+        return [selected, ...filtered];
+      }
+    }
+
+    return filtered;
+  }, [teams, championSearch, championTeamId]);
+
+  const runnerUpOptions = useMemo(() => {
+    const query = normalizeText(runnerUpSearch.trim());
+    const filtered = query
+      ? teams.filter((team) => normalizeText(team.name).includes(query))
+      : teams;
+
+    if (runnerUpTeamId && !filtered.some((team) => team.id === runnerUpTeamId)) {
+      const selected = teams.find((team) => team.id === runnerUpTeamId);
+      if (selected) {
+        return [selected, ...filtered];
+      }
+    }
+
+    return filtered;
+  }, [teams, runnerUpSearch, runnerUpTeamId]);
 
   async function handleSave() {
     setError(null);
@@ -107,6 +148,14 @@ export function ProdePodiumPicks({
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         <label className="space-y-1 text-sm">
           <span className="label-tech block">{copy.champion}</span>
+          <input
+            type="text"
+            value={championSearch}
+            onChange={(event) => setChampionSearch(event.target.value)}
+            disabled={isLocked || isSaving}
+            className="input-tech"
+            placeholder="Buscar equipo..."
+          />
           <select
             value={championTeamId}
             onChange={(event) => setChampionTeamId(event.target.value)}
@@ -114,7 +163,7 @@ export function ProdePodiumPicks({
             className="select-tech"
           >
             <option value="">{copy.selectPlaceholder}</option>
-            {teams.map((team) => (
+            {championOptions.map((team) => (
               <option key={team.id} value={team.id}>
                 {team.name}
               </option>
@@ -124,6 +173,14 @@ export function ProdePodiumPicks({
 
         <label className="space-y-1 text-sm">
           <span className="label-tech block">{copy.runnerUp}</span>
+          <input
+            type="text"
+            value={runnerUpSearch}
+            onChange={(event) => setRunnerUpSearch(event.target.value)}
+            disabled={isLocked || isSaving}
+            className="input-tech"
+            placeholder="Buscar equipo..."
+          />
           <select
             value={runnerUpTeamId}
             onChange={(event) => setRunnerUpTeamId(event.target.value)}
@@ -131,7 +188,7 @@ export function ProdePodiumPicks({
             className="select-tech"
           >
             <option value="">{copy.selectPlaceholder}</option>
-            {teams.map((team) => (
+            {runnerUpOptions.map((team) => (
               <option key={team.id} value={team.id}>
                 {team.name}
               </option>
