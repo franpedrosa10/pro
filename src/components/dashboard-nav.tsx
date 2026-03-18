@@ -62,9 +62,9 @@ export function DashboardNav({
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-1 items-center gap-2 lg:justify-end">
-          <div className="scroll-hover-x min-w-0 flex-1 lg:max-w-[700px]">
-            <div className="flex min-w-max items-center gap-2 pb-1">
+        <div className="flex min-w-0 w-full items-center gap-2 lg:w-auto lg:justify-end">
+          <div className="scroll-hover-x min-w-0 flex-1 lg:flex-none lg:max-w-[700px]">
+            <div className="flex min-w-max items-center gap-2">
               {navItems.map((item) => {
                 const active = isActive(pathname, item.href, "exact" in item ? item.exact : false);
                 return (
