@@ -3,15 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { NotificationsMenu, type NavNotificationItem } from "@/components/notifications-menu";
 import { SignOutButton } from "@/components/sign-out-button";
 import { AppLocale, getUiDictionary } from "@/lib/i18n";
 
 type DashboardNavProps = {
   profileName: string;
   locale: AppLocale;
+  isAdmin: boolean;
+  notifications: NavNotificationItem[];
+  unreadNotifications: number;
 };
 
-const NAV_ITEMS = [
+const BASE_NAV_ITEMS = [
   { href: "/dashboard", key: "home", exact: true },
   { href: "/dashboard/prode", key: "prode" },
   { href: "/dashboard/leagues", key: "leagues" },
@@ -26,9 +30,18 @@ function isActive(pathname: string, href: string, exact = false) {
   return pathname.startsWith(href);
 }
 
-export function DashboardNav({ profileName, locale }: DashboardNavProps) {
+export function DashboardNav({
+  profileName,
+  locale,
+  isAdmin,
+  notifications,
+  unreadNotifications,
+}: DashboardNavProps) {
   const pathname = usePathname();
   const copy = getUiDictionary(locale);
+  const navItems = isAdmin
+    ? [...BASE_NAV_ITEMS, { href: "/dashboard/admin", key: "admin" as const }]
+    : BASE_NAV_ITEMS;
 
   return (
     <div className="panel sticky top-3 z-40 p-3 sm:p-4">
@@ -50,7 +63,7 @@ export function DashboardNav({ profileName, locale }: DashboardNavProps) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const active = isActive(pathname, item.href, "exact" in item ? item.exact : false);
             return (
               <Link
@@ -59,10 +72,12 @@ export function DashboardNav({ profileName, locale }: DashboardNavProps) {
                 aria-current={active ? "page" : undefined}
                 className={active ? "nav-item nav-item-active" : "nav-item"}
               >
-                {copy.nav[item.key]}
+                {"key" in item && item.key === "admin" ? "Admin" : copy.nav[item.key]}
               </Link>
             );
           })}
+
+          <NotificationsMenu items={notifications} unreadCount={unreadNotifications} />
 
           <SignOutButton
             className="text-xs sm:text-sm"

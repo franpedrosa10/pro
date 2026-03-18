@@ -20,10 +20,89 @@ alter default privileges for role postgres in schema public
 alter default privileges for role postgres in schema public
   grant execute on functions to anon, authenticated, service_role;
 
-create type public.player_position as enum ('GK', 'DEF', 'MID', 'FWD');
-create type public.squad_slot as enum ('starter', 'bench');
-create type public.fixture_status as enum ('scheduled', 'in_progress', 'finished');
-create type public.league_prize_proposal_kind as enum ('money', 'material');
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_type t
+    join pg_namespace n on n.oid = t.typnamespace
+    where n.nspname = 'public'
+      and t.typname = 'player_position'
+  ) then
+    create type public.player_position as enum ('GK', 'DEF', 'MID', 'FWD');
+  end if;
+end;
+$$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_type t
+    join pg_namespace n on n.oid = t.typnamespace
+    where n.nspname = 'public'
+      and t.typname = 'squad_slot'
+  ) then
+    create type public.squad_slot as enum ('starter', 'bench');
+  end if;
+end;
+$$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_type t
+    join pg_namespace n on n.oid = t.typnamespace
+    where n.nspname = 'public'
+      and t.typname = 'fixture_status'
+  ) then
+    create type public.fixture_status as enum ('scheduled', 'in_progress', 'finished');
+  end if;
+end;
+$$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_type t
+    join pg_namespace n on n.oid = t.typnamespace
+    where n.nspname = 'public'
+      and t.typname = 'league_prize_proposal_kind'
+  ) then
+    create type public.league_prize_proposal_kind as enum ('money', 'material');
+  end if;
+end;
+$$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_type t
+    join pg_namespace n on n.oid = t.typnamespace
+    where n.nspname = 'public'
+      and t.typname = 'notification_kind'
+  ) then
+    create type public.notification_kind as enum ('general', 'matchday_points', 'result_update', 'admin_broadcast');
+  end if;
+end;
+$$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_type t
+    join pg_namespace n on n.oid = t.typnamespace
+    where n.nspname = 'public'
+      and t.typname = 'notification_audience'
+  ) then
+    create type public.notification_audience as enum ('global', 'country', 'league', 'user');
+  end if;
+end;
+$$;
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -32,6 +111,7 @@ create table if not exists public.profiles (
   first_name text,
   last_name text,
   phone text,
+  is_admin boolean not null default false,
   country_code text check (country_code is null or country_code ~ '^[A-Z]{2}$'),
   country_name text,
   avatar_url text,
@@ -41,6 +121,7 @@ create table if not exists public.profiles (
 alter table public.profiles add column if not exists first_name text;
 alter table public.profiles add column if not exists last_name text;
 alter table public.profiles add column if not exists phone text;
+alter table public.profiles add column if not exists is_admin boolean not null default false;
 alter table public.profiles add column if not exists country_code text;
 alter table public.profiles add column if not exists country_name text;
 
@@ -257,6 +338,65 @@ create table if not exists public.league_prize_votes (
   primary key (proposal_id, user_id)
 );
 
+create table if not exists public.notifications (
+  id uuid primary key default gen_random_uuid(),
+  kind public.notification_kind not null default 'general',
+  audience public.notification_audience not null default 'global',
+  audience_country_code text,
+  audience_league_id uuid references public.leagues(id) on delete cascade,
+  audience_user_id uuid references public.profiles(id) on delete cascade,
+  title text not null,
+  body text not null,
+  cta_href text,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz,
+  constraint notifications_title_len_check check (char_length(trim(title)) between 3 and 120),
+  constraint notifications_body_len_check check (char_length(trim(body)) between 3 and 600),
+  constraint notifications_country_code_check check (
+    audience_country_code is null or audience_country_code ~ '^[A-Z]{2}$'
+  ),
+  constraint notifications_cta_href_check check (
+    cta_href is null
+    or cta_href ~ '^/'
+    or cta_href ~ '^https?://'
+  ),
+  constraint notifications_audience_payload_check check (
+    (
+      audience = 'global'::public.notification_audience
+      and audience_country_code is null
+      and audience_league_id is null
+      and audience_user_id is null
+    )
+    or (
+      audience = 'country'::public.notification_audience
+      and audience_country_code is not null
+      and audience_league_id is null
+      and audience_user_id is null
+    )
+    or (
+      audience = 'league'::public.notification_audience
+      and audience_country_code is null
+      and audience_league_id is not null
+      and audience_user_id is null
+    )
+    or (
+      audience = 'user'::public.notification_audience
+      and audience_country_code is null
+      and audience_league_id is null
+      and audience_user_id is not null
+    )
+  )
+);
+
+create table if not exists public.notification_reads (
+  notification_id uuid not null references public.notifications(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  read_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  primary key (notification_id, user_id)
+);
+
 create table if not exists public.prode_predictions (
   user_id uuid not null references public.profiles(id) on delete cascade,
   fixture_id uuid not null references public.fixtures(id) on delete cascade,
@@ -293,6 +433,12 @@ create index if not exists idx_fantasy_team_players_team on public.fantasy_team_
 create index if not exists idx_league_members_user on public.league_members(user_id);
 create index if not exists idx_league_prize_proposals_league on public.league_prize_proposals(league_id, created_at);
 create index if not exists idx_league_prize_votes_user on public.league_prize_votes(user_id);
+create index if not exists idx_notifications_created_at on public.notifications(created_at desc);
+create index if not exists idx_notifications_audience_global on public.notifications(audience, created_at desc);
+create index if not exists idx_notifications_audience_country on public.notifications(audience_country_code) where audience = 'country';
+create index if not exists idx_notifications_audience_league on public.notifications(audience_league_id) where audience = 'league';
+create index if not exists idx_notifications_audience_user on public.notifications(audience_user_id) where audience = 'user';
+create index if not exists idx_notification_reads_user on public.notification_reads(user_id, read_at);
 create index if not exists idx_predictions_fixture on public.prode_predictions(fixture_id);
 create index if not exists idx_prode_multipliers_matchday on public.prode_matchday_multipliers(matchday_id);
 create index if not exists idx_prode_multipliers_fixture on public.prode_matchday_multipliers(fixture_id);
@@ -436,6 +582,26 @@ drop trigger if exists trg_league_prize_proposals_updated_at on public.league_pr
 create trigger trg_league_prize_proposals_updated_at
   before update on public.league_prize_proposals
   for each row execute function public.set_updated_at();
+
+create or replace function public.prevent_profile_admin_escalation()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.is_admin is distinct from old.is_admin then
+    if not public.is_admin_user(auth.uid()) then
+      raise exception 'No autorizado para modificar permisos de administrador';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_profiles_admin_guard on public.profiles;
+create trigger trg_profiles_admin_guard
+  before update on public.profiles
+  for each row execute function public.prevent_profile_admin_escalation();
 
 create or replace function public.validate_fantasy_team_state(p_team_id uuid)
 returns void
@@ -908,6 +1074,168 @@ as $$
   );
 $$;
 
+create or replace function public.is_admin_user(p_user_id uuid default auth.uid())
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1
+    from public.profiles p
+    where p.id = coalesce(p_user_id, auth.uid())
+      and p.is_admin = true
+  );
+$$;
+
+create or replace function public.can_access_notification(
+  p_notification_id uuid,
+  p_user_id uuid default auth.uid()
+)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1
+    from public.notifications n
+    left join public.profiles p on p.id = coalesce(p_user_id, auth.uid())
+    where coalesce(p_user_id, auth.uid()) is not null
+      and n.id = p_notification_id
+      and (
+        n.audience = 'global'::public.notification_audience
+        or (
+          n.audience = 'user'::public.notification_audience
+          and n.audience_user_id = coalesce(p_user_id, auth.uid())
+        )
+        or (
+          n.audience = 'country'::public.notification_audience
+          and p.country_code is not null
+          and p.country_code = n.audience_country_code
+        )
+        or (
+          n.audience = 'league'::public.notification_audience
+          and (
+            exists (
+              select 1
+              from public.league_members lm
+              where lm.league_id = n.audience_league_id
+                and lm.user_id = coalesce(p_user_id, auth.uid())
+            )
+            or exists (
+              select 1
+              from public.leagues l
+              where l.id = n.audience_league_id
+                and l.owner_id = coalesce(p_user_id, auth.uid())
+            )
+          )
+        )
+      )
+  );
+$$;
+
+create or replace function public.get_my_notifications(p_limit integer default 20)
+returns table(
+  id uuid,
+  kind public.notification_kind,
+  title text,
+  body text,
+  cta_href text,
+  created_at timestamptz,
+  is_read boolean
+)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select
+    n.id,
+    n.kind,
+    n.title,
+    n.body,
+    n.cta_href,
+    n.created_at,
+    exists (
+      select 1
+      from public.notification_reads nr
+      where nr.notification_id = n.id
+        and nr.user_id = auth.uid()
+    ) as is_read
+  from public.notifications n
+  where public.can_access_notification(n.id, auth.uid())
+  order by n.created_at desc
+  limit greatest(1, least(coalesce(p_limit, 20), 100));
+$$;
+
+create or replace function public.count_my_unread_notifications()
+returns integer
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select count(*)::integer
+  from public.notifications n
+  where public.can_access_notification(n.id, auth.uid())
+    and not exists (
+      select 1
+      from public.notification_reads nr
+      where nr.notification_id = n.id
+        and nr.user_id = auth.uid()
+    );
+$$;
+
+create or replace function public.mark_notification_read(p_notification_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'No autenticado';
+  end if;
+
+  if not public.can_access_notification(p_notification_id, auth.uid()) then
+    raise exception 'Notificacion no disponible para este usuario';
+  end if;
+
+  insert into public.notification_reads (notification_id, user_id)
+  values (p_notification_id, auth.uid())
+  on conflict (notification_id, user_id) do update
+  set read_at = now();
+end;
+$$;
+
+create or replace function public.mark_all_notifications_read()
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_rows integer;
+begin
+  if auth.uid() is null then
+    raise exception 'No autenticado';
+  end if;
+
+  insert into public.notification_reads (notification_id, user_id)
+  select n.id, auth.uid()
+  from public.notifications n
+  where public.can_access_notification(n.id, auth.uid())
+  on conflict (notification_id, user_id) do update
+  set read_at = now();
+
+  get diagnostics v_rows = row_count;
+  return coalesce(v_rows, 0);
+end;
+$$;
+
 create or replace function public.is_first_round_open()
 returns boolean
 language sql
@@ -1141,6 +1469,12 @@ $$;
 
 grant execute on function public.is_league_member(uuid) to authenticated;
 grant execute on function public.is_league_owner(uuid) to authenticated;
+grant execute on function public.is_admin_user(uuid) to authenticated;
+grant execute on function public.can_access_notification(uuid, uuid) to authenticated;
+grant execute on function public.get_my_notifications(integer) to authenticated;
+grant execute on function public.count_my_unread_notifications() to authenticated;
+grant execute on function public.mark_notification_read(uuid) to authenticated;
+grant execute on function public.mark_all_notifications_read() to authenticated;
 grant execute on function public.is_first_round_open() to authenticated;
 grant execute on function public.join_league_with_code(text) to authenticated;
 grant execute on function public.join_country_league() to authenticated;
@@ -1158,6 +1492,8 @@ alter table public.leagues enable row level security;
 alter table public.league_members enable row level security;
 alter table public.league_prize_proposals enable row level security;
 alter table public.league_prize_votes enable row level security;
+alter table public.notifications enable row level security;
+alter table public.notification_reads enable row level security;
 alter table public.prode_predictions enable row level security;
 alter table public.prode_matchday_multipliers enable row level security;
 alter table public.prode_podium_picks enable row level security;
@@ -1413,6 +1749,63 @@ create policy league_prize_votes_delete_self on public.league_prize_votes
       where p.id = league_prize_votes.proposal_id
         and public.is_league_member(p.league_id)
     )
+  );
+
+drop policy if exists notifications_select_accessible on public.notifications;
+create policy notifications_select_accessible on public.notifications
+  for select to authenticated
+  using (public.can_access_notification(notifications.id, auth.uid()));
+
+drop policy if exists notifications_insert_admin on public.notifications;
+create policy notifications_insert_admin on public.notifications
+  for insert to authenticated
+  with check (public.is_admin_user(auth.uid()));
+
+drop policy if exists notifications_update_admin on public.notifications;
+create policy notifications_update_admin on public.notifications
+  for update to authenticated
+  using (public.is_admin_user(auth.uid()))
+  with check (public.is_admin_user(auth.uid()));
+
+drop policy if exists notifications_delete_admin on public.notifications;
+create policy notifications_delete_admin on public.notifications
+  for delete to authenticated
+  using (public.is_admin_user(auth.uid()));
+
+drop policy if exists notification_reads_select_self on public.notification_reads;
+create policy notification_reads_select_self on public.notification_reads
+  for select to authenticated
+  using (
+    user_id = auth.uid()
+    and public.can_access_notification(notification_reads.notification_id, auth.uid())
+  );
+
+drop policy if exists notification_reads_insert_self on public.notification_reads;
+create policy notification_reads_insert_self on public.notification_reads
+  for insert to authenticated
+  with check (
+    user_id = auth.uid()
+    and public.can_access_notification(notification_reads.notification_id, auth.uid())
+  );
+
+drop policy if exists notification_reads_update_self on public.notification_reads;
+create policy notification_reads_update_self on public.notification_reads
+  for update to authenticated
+  using (
+    user_id = auth.uid()
+    and public.can_access_notification(notification_reads.notification_id, auth.uid())
+  )
+  with check (
+    user_id = auth.uid()
+    and public.can_access_notification(notification_reads.notification_id, auth.uid())
+  );
+
+drop policy if exists notification_reads_delete_self on public.notification_reads;
+create policy notification_reads_delete_self on public.notification_reads
+  for delete to authenticated
+  using (
+    user_id = auth.uid()
+    and public.can_access_notification(notification_reads.notification_id, auth.uid())
   );
 
 drop policy if exists prode_predictions_select_auth on public.prode_predictions;

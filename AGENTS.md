@@ -29,6 +29,8 @@ Direccion de producto actual:
   - `ligas`
   - `resultados globales`
   - `mi cuenta`
+  - `notificaciones` (campana/menu con contador de no leidas)
+  - `admin` (solo visible si `profiles.is_admin = true`)
 - Prode:
   - Edicion permitida solo antes del kickoff
   - Guardado batch por API (`PUT /api/prode/predictions`)
@@ -41,16 +43,32 @@ Direccion de producto actual:
   - Selector de podio con dropdown custom y buscador integrado
 - Ligas privadas:
   - Crear liga
-  - Unirse por codigo
-  - Compartir invitacion por link
+  - Flujo privado solo por invitacion (`/invite/[joinCode]`)
+  - Compartir por `copiar link` o `WhatsApp` (sin mostrar link crudo en cards)
   - Unirse a liga oficial por pais (auto-create + auto-join)
-  - Ruta de invitacion: `/invite/[joinCode]`
   - Premio por persona:
     - propuesta por usuario (monto o premio material)
     - votos multiples (puede votar varias propuestas)
     - habilitado solo hasta el cierre de la Fecha 1
     - deshabilitado en ligas oficiales por pais
     - aclaracion visible: el premio corre por cuenta de los jugadores (no lo gestiona la plataforma)
+- Notificaciones in-app:
+  - Tipos: `general`, `matchday_points`, `result_update`, `admin_broadcast`
+  - Audiencias: global, pais, liga, usuario
+  - Bandeja en navbar con:
+    - listado de ultimas notificaciones
+    - marca individual como leida
+    - marcar todas como leidas
+  - RPCs de soporte:
+    - `get_my_notifications`
+    - `count_my_unread_notifications`
+    - `mark_notification_read`
+    - `mark_all_notifications_read`
+- Panel admin (`/dashboard/admin`):
+  - Carga de resultados fixture por fixture
+  - Publicacion de puntos por fecha (marca `matchday.is_finalized`)
+  - Envio de notificaciones broadcast (global/pais/liga)
+  - API protegida por `profiles.is_admin`
 - Resultados:
   - Ranking Prode global
   - Ranking por fecha
@@ -81,9 +99,13 @@ Incluye:
 - Tablas bonus Prode (`prode_matchday_multipliers`, `prode_podium_picks`)
 - Tablas sociales de ligas (`league_prize_proposals`, `league_prize_votes`)
 - Triggers de ligas para premio (`validate_league_prize_proposal`, `validate_league_prize_vote`)
+- Tablas de notificaciones (`notifications`, `notification_reads`)
+- Campo admin en perfil (`profiles.is_admin`)
+- Trigger anti-escalacion de admin (`prevent_profile_admin_escalation`)
 - Vistas de scoring (`v_prode_user_fixture_points`, `v_prode_user_matchday_scores`, `v_prode_user_totals`)
 - Vistas agregadas (`v_global_standings`, `v_league_standings`)
 - Funciones de ligas (`join_league_with_code`, `join_country_league`)
+- Funciones de notificaciones/admin (`is_admin_user`, `can_access_notification`, `get_my_notifications`, etc.)
 - Policies RLS completas
 - Dataset base del Mundial 2026:
   - Equipos reales + placeholders de repechaje y llaves
@@ -101,17 +123,21 @@ Incluye:
 ## Endpoints vigentes
 
 - `POST /api/leagues`
-- `POST /api/leagues/join`
 - `POST /api/leagues/country`
 - `POST /api/leagues/prize/proposal`
 - `PUT /api/leagues/prize/vote`
+- `PUT /api/notifications/read`
 - `PUT /api/prode/double`
 - `PUT /api/prode/podium`
 - `PUT /api/prode/predictions`
 - `PUT /api/profile`
+- `POST /api/admin/notifications`
+- `PUT /api/admin/fixtures/[fixtureId]`
+- `POST /api/admin/matchdays/publish`
 
 Endpoint legacy (no promocionado en UX):
 
+- `POST /api/leagues/join`
 - `PUT /api/squad`
 
 ## Setup rapido
@@ -124,9 +150,21 @@ Endpoint legacy (no promocionado en UX):
    - `NEXT_PUBLIC_SITE_URL`
 4. Ejecutar en Supabase SQL Editor:
    - `supabase/schema.sql`
-   - si ya tenes DB existente y no queres recrear todo, para sumar premios de ligas: `supabase/hotfix_league_prize_proposals.sql`
+   - si aparece `type "...\" already exists` al re-ejecutar schema: correr `supabase/hotfix_enum_types_guard.sql` y luego volver a correr `supabase/schema.sql`
    - `supabase/seed.sql` es opcional solo para datos demo legacy
 5. `npm run dev` (usa `next dev --webpack` para evitar error de persistencia de Turbopack)
+
+## Admin bootstrap
+
+Para habilitar tu usuario como admin (una sola vez), correr en SQL Editor:
+
+```sql
+update public.profiles
+set is_admin = true
+where id = '<TU_AUTH_USER_ID>';
+```
+
+Luego reloguear para que aparezca el item `admin` en navbar.
 
 ## OAuth Google
 
@@ -156,5 +194,13 @@ Si aparece `Unsupported provider: provider is not enabled` o `redirect_uri_misma
 - Si se cambian reglas de Prode o ranking por pais, actualizar:
   - consultas en `src/app/dashboard/*`
   - `src/app/api/*`
+  - `supabase/schema.sql`
+- Si se cambian notificaciones/admin, actualizar:
+  - `src/components/notifications-menu.tsx`
+  - `src/components/dashboard-nav.tsx`
+  - `src/app/dashboard/layout.tsx`
+  - `src/app/dashboard/admin/page.tsx`
+  - `src/app/api/admin/*`
+  - `src/app/api/notifications/read/route.ts`
   - `supabase/schema.sql`
 - Antes de cerrar cambios: correr `npm run lint` y `npm run build`.

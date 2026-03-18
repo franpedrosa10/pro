@@ -33,81 +33,57 @@ const COPY: Record<
     title: string;
     subtitle: string;
     createLeague: string;
-    joinByCode: string;
     officialByCountry: string;
     yourLeagues: string;
     noLeagues: string;
     create: string;
     creating: string;
-    join: string;
-    joining: string;
     joinMyCountry: string;
     joiningCountry: string;
     copied: string;
-    copyCode: string;
     copyLink: string;
-    share: string;
     whatsapp: string;
-    viewInvite: string;
     viewTable: string;
     officialBadge: string;
     createError: string;
-    joinError: string;
     countryJoinError: string;
     createdOk: string;
-    createdPrefix: string;
-    alreadyInLeague: string;
-    joinedLeague: string;
     alreadyInCountry: string;
     joinedCountry: string;
     completeCountry: string;
     alreadyInCountryPrefix: string;
     joinCountryPrefix: string;
     copyFallback: string;
-    sharedOk: string;
-    copiedCodeOk: string;
     copiedLinkOk: string;
     placeholderLeague: string;
   }
 > = {
   es: {
     title: "Ligas privadas",
-    subtitle: "Creá una liga, unite por código y compartí invitación directa por link.",
-    createLeague: "Crear liga",
-    joinByCode: "Unirme por código",
-    officialByCountry: "Liga oficial por país",
+    subtitle: "Las ligas privadas se manejan solo por invitacion.",
+    createLeague: "Crear liga privada",
+    officialByCountry: "Liga oficial por pais",
     yourLeagues: "Tus ligas",
-    noLeagues: "Todavía no estás en ninguna liga.",
+    noLeagues: "Todavia no estas en ninguna liga.",
     create: "Crear",
     creating: "Creando...",
-    join: "Unirme",
-    joining: "Uniendo...",
-    joinMyCountry: "Unirme a mi país",
+    joinMyCountry: "Unirme a mi pais",
     joiningCountry: "Uniendo...",
     copied: "Copiado",
-    copyCode: "Copiar código",
     copyLink: "Copiar link",
-    share: "Compartir",
     whatsapp: "WhatsApp",
-    viewInvite: "Ver invitación",
     viewTable: "Ver tabla de liga",
     officialBadge: "Oficial",
     createError: "No se pudo crear la liga.",
-    joinError: "No se pudo unir a la liga.",
-    countryJoinError: "No se pudo unir a la liga oficial de tu país.",
-    createdOk: "Liga creada correctamente.",
-    createdPrefix: "Liga creada. Código",
-    alreadyInLeague: "Ya estabas en esa liga. Te dejamos el acceso directo disponible.",
-    joinedLeague: "Te uniste a la liga correctamente.",
-    alreadyInCountry: "Ya estabas en la liga oficial de tu país.",
-    joinedCountry: "Te uniste a la liga oficial de tu país.",
-    completeCountry: "Completá tu país en Mi cuenta para activar la liga oficial.",
-    alreadyInCountryPrefix: "Ya estás en la liga oficial de",
+    countryJoinError: "No se pudo unir a la liga oficial de tu pais.",
+    createdOk: "Liga creada. Comparti la invitacion desde Tus ligas.",
+    alreadyInCountry: "Ya estabas en la liga oficial de tu pais.",
+    joinedCountry: "Te uniste a la liga oficial de tu pais.",
+    completeCountry: "Completa tu pais en Mi cuenta para activar la liga oficial.",
+    alreadyInCountryPrefix: "Ya estas en la liga oficial de",
     joinCountryPrefix: "Unite a la liga oficial de",
-    copyFallback: "No se pudo copiar automáticamente. Copialo manualmente.",
-    sharedOk: "Invitación compartida.",
-    copiedCodeOk: "Código copiado.",
-    copiedLinkOk: "Link de invitación copiado.",
+    copyFallback: "No se pudo copiar automaticamente. Copialo manualmente.",
+    copiedLinkOk: "Link de invitacion copiado.",
     placeholderLeague: "Ej: La Banda del Mundial",
   },
 };
@@ -115,11 +91,9 @@ const COPY: Record<
 export function LeagueManager({ leagues, profileCountry, locale }: LeagueManagerProps) {
   const copy = COPY[locale];
   const [leagueName, setLeagueName] = useState("");
-  const [joinCode, setJoinCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [isJoining, setIsJoining] = useState(false);
   const [isJoiningCountry, setIsJoiningCountry] = useState(false);
   const [copyState, setCopyState] = useState<string | null>(null);
 
@@ -165,27 +139,6 @@ export function LeagueManager({ leagues, profileCountry, locale }: LeagueManager
     }
   }
 
-  async function shareLeague(league: LeagueItem) {
-    const inviteLink = toAbsoluteInviteLink(getInviteLink(league.join_code));
-    const text = `${copy.joinByCode}: "${league.name}" - ${inviteLink}`;
-
-    if (typeof navigator !== "undefined" && "share" in navigator) {
-      try {
-        await navigator.share({
-          title: `${copy.viewInvite}: ${league.name}`,
-          text,
-          url: inviteLink,
-        });
-        setInfo(copy.sharedOk);
-        return;
-      } catch {
-        // User cancelled or API error: fallback to copy.
-      }
-    }
-
-    await copyValue(inviteLink, `${league.id}:link`, copy.copiedLinkOk);
-  }
-
   async function handleCreateLeague(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
@@ -206,42 +159,7 @@ export function LeagueManager({ leagues, profileCountry, locale }: LeagueManager
     }
 
     setLeagueName("");
-
-    const newCode = payload.league?.join_code as string | undefined;
-    if (newCode) {
-      setInfo(`${copy.createdPrefix}: ${newCode}. Link: ${getInviteLink(newCode)}`);
-    } else {
-      setInfo(copy.createdOk);
-    }
-
-    router.refresh();
-  }
-
-  async function handleJoinLeague(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-    setInfo(null);
-    setIsJoining(true);
-
-    const response = await fetch("/api/leagues/join", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ joinCode }),
-    });
-    const payload = await response.json();
-    setIsJoining(false);
-
-    if (!response.ok) {
-      setError(payload.error ?? copy.joinError);
-      return;
-    }
-
-    setJoinCode("");
-    if (payload.alreadyJoined) {
-      setInfo(copy.alreadyInLeague);
-    } else {
-      setInfo(copy.joinedLeague);
-    }
+    setInfo(copy.createdOk);
     router.refresh();
   }
 
@@ -280,7 +198,7 @@ export function LeagueManager({ leagues, profileCountry, locale }: LeagueManager
       <h2 className="text-4xl leading-none">{copy.title}</h2>
       <p className="section-subtitle mt-2 text-sm">{copy.subtitle}</p>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      <div className="mt-4">
         <form className="panel-soft space-y-2 p-3" onSubmit={handleCreateLeague}>
           <h3 className="text-sm font-semibold text-[#1f2937]">{copy.createLeague}</h3>
           <input
@@ -300,26 +218,6 @@ export function LeagueManager({ leagues, profileCountry, locale }: LeagueManager
             {isCreating ? copy.creating : copy.create}
           </button>
         </form>
-
-        <form className="panel-soft space-y-2 p-3" onSubmit={handleJoinLeague}>
-          <h3 className="text-sm font-semibold text-[#1f2937]">{copy.joinByCode}</h3>
-          <input
-            value={joinCode}
-            onChange={(event) => setJoinCode(event.target.value.toUpperCase())}
-            required
-            minLength={6}
-            maxLength={6}
-            placeholder="ABC123"
-            className="input-tech uppercase"
-          />
-          <button
-            type="submit"
-            disabled={isJoining}
-            className="btn-ghost w-full px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isJoining ? copy.joining : copy.join}
-          </button>
-        </form>
       </div>
 
       {error ? <p className="alert-error mt-3 rounded-lg p-3 text-sm">{error}</p> : null}
@@ -328,9 +226,7 @@ export function LeagueManager({ leagues, profileCountry, locale }: LeagueManager
       <div className="panel-soft mt-4 p-3">
         <h3 className="text-sm font-semibold text-[#1f2937]">{copy.officialByCountry}</h3>
         {!profileCountry.countryCode ? (
-          <p className="mt-2 text-xs text-[#6b7280]">
-            {copy.completeCountry}
-          </p>
+          <p className="mt-2 text-xs text-[#6b7280]">{copy.completeCountry}</p>
         ) : myCountryLeague ? (
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
             <span className="text-[#1f2937]">
@@ -364,10 +260,11 @@ export function LeagueManager({ leagues, profileCountry, locale }: LeagueManager
         ) : (
           <ul className="space-y-2">
             {leagues.map((league) => {
-              const inviteLink = getInviteLink(league.join_code);
+              const inviteLink = toAbsoluteInviteLink(getInviteLink(league.join_code));
               const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(
                 `Unite a mi liga "${league.name}" en Prode Mundial: ${inviteLink}`,
               )}`;
+              const showPrivateInviteActions = !league.is_country_league;
 
               return (
                 <li key={league.id} className="panel-soft p-3 text-sm">
@@ -380,43 +277,24 @@ export function LeagueManager({ leagues, profileCountry, locale }: LeagueManager
                         </span>
                       ) : null}
                     </div>
-                    <span className="rounded bg-[#9a6b00] px-2 py-1 font-mono text-xs text-white">{league.join_code}</span>
                   </div>
 
-                  <p className="mt-2 break-all text-xs text-[#6b7280]">{inviteLink}</p>
-
                   <div className="mt-2 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => copyValue(league.join_code, `${league.id}:code`, copy.copiedCodeOk)}
-                      className="btn-ghost px-2 py-1 text-xs"
-                    >
-                      {copyState === `${league.id}:code` ? copy.copied : copy.copyCode}
-                    </button>
+                    {showPrivateInviteActions ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => copyValue(inviteLink, `${league.id}:link`, copy.copiedLinkOk)}
+                          className="btn-ghost px-2 py-1 text-xs"
+                        >
+                          {copyState === `${league.id}:link` ? copy.copied : copy.copyLink}
+                        </button>
 
-                    <button
-                      type="button"
-                      onClick={() => copyValue(inviteLink, `${league.id}:link`, copy.copiedLinkOk)}
-                      className="btn-ghost px-2 py-1 text-xs"
-                    >
-                      {copyState === `${league.id}:link` ? copy.copied : copy.copyLink}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => shareLeague(league)}
-                      className="btn-ghost px-2 py-1 text-xs"
-                    >
-                      {copy.share}
-                    </button>
-
-                    <a href={whatsappUrl} target="_blank" rel="noreferrer" className="btn-ghost px-2 py-1 text-xs">
-                      {copy.whatsapp}
-                    </a>
-
-                    <Link href={`/invite/${league.join_code}`} className="btn-soft px-2 py-1 text-xs">
-                      {copy.viewInvite}
-                    </Link>
+                        <a href={whatsappUrl} target="_blank" rel="noreferrer" className="btn-ghost px-2 py-1 text-xs">
+                          {copy.whatsapp}
+                        </a>
+                      </>
+                    ) : null}
 
                     <Link href={`/dashboard/leagues/${league.id}`} className="link-inline inline-flex items-center px-1 text-xs">
                       {copy.viewTable}

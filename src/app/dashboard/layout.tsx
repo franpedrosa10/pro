@@ -2,9 +2,11 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 
 import { DashboardNav } from "@/components/dashboard-nav";
+import type { NavNotificationItem } from "@/components/notifications-menu";
 import { requireUser } from "@/lib/auth";
 import { getUiDictionary } from "@/lib/i18n";
 import { getRequestLocale } from "@/lib/i18n/server";
+import { readUserAdminFlag } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +14,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const { supabase, user } = await requireUser();
   const locale = await getRequestLocale();
   const copy = getUiDictionary(locale);
-  const profileSelect = "display_name, first_name, last_name, username, phone, country_code";
+  const profileSelect = "display_name, first_name, last_name, username, phone, country_code, is_admin";
 
   const profileResult = await supabase
     .from("profiles")
@@ -28,6 +30,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         username?: string | null;
         phone?: string | null;
         country_code?: string | null;
+        is_admin?: boolean | null;
       }
     | null;
 
@@ -93,10 +96,64 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     missingFields.push(copy.layout.missingField.country);
   }
 
+  const adminCheck = await readUserAdminFlag(supabase, user.id);
+  const isAdmin = adminCheck.isAdmin || Boolean(profileData?.is_admin);
+
+  const notificationsRpc = await supabase.rpc("get_my_notifications", {
+    p_limit: 20,
+  });
+
+  const unreadRpc = await supabase.rpc("count_my_unread_notifications");
+
+  const notificationDateFormatter = new Intl.DateTimeFormat("es-AR", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
+
+  const notifications: NavNotificationItem[] =
+    (notificationsRpc.data as Array<{
+      id: string;
+      kind: "general" | "matchday_points" | "result_update" | "admin_broadcast";
+      title: string;
+      body: string;
+      cta_href: string | null;
+      created_at: string;
+      is_read: boolean;
+    }> | null)?.map((row) => ({
+      id: row.id,
+      kind: row.kind,
+      title: row.title,
+      body: row.body,
+      ctaHref: row.cta_href ?? null,
+      createdAtLabel: notificationDateFormatter.format(new Date(row.created_at)),
+      isRead: Boolean(row.is_read),
+    })) ?? [];
+
+  const unreadNotifications = Number(unreadRpc.data ?? 0);
+
   return (
     <div className="page-shell">
       <div className="app-container space-y-4">
-        <DashboardNav profileName={profileName} locale={locale} />
+        <DashboardNav
+          profileName={profileName}
+          locale={locale}
+          isAdmin={isAdmin}
+          notifications={notifications}
+          unreadNotifications={unreadNotifications}
+        />
+
+        {adminCheck.errorMessage ? (
+          <div className="alert-warning rounded-xl p-3 text-sm">
+            Error al validar permisos de admin: {adminCheck.errorMessage}
+          </div>
+        ) : null}
+
+        {notificationsRpc.error ? (
+          <div className="alert-warning rounded-xl p-3 text-sm">
+            Error al cargar notificaciones: {notificationsRpc.error.message}
+          </div>
+        ) : null}
 
         {missingFields.length > 0 ? (
           <div className="alert-warning rounded-xl p-3 text-sm">
