@@ -119,13 +119,29 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
   const proposalsResult = await supabase
     .from("league_prize_proposals")
     .select(
-      "id, proposer_user_id, proposal_kind, amount_per_person, currency_code, material_description, note, created_at, profiles(display_name, username)",
+      "id, proposer_user_id, proposal_kind, amount_per_person, currency_code, material_description, note, created_at",
     )
     .eq("league_id", leagueId)
     .order("created_at", { ascending: true });
 
   if (proposalsResult.error) {
     schemaError = schemaError ?? proposalsResult.error.message;
+  }
+
+  const proposerUserIds = Array.from(
+    new Set((proposalsResult.data ?? []).map((row) => row.proposer_user_id as string)),
+  );
+
+  const proposerProfilesResult =
+    proposerUserIds.length === 0
+      ? { data: [] as Array<{ id: string; display_name: string | null; username: string | null }>, error: null }
+      : await supabase
+          .from("profiles")
+          .select("id, display_name, username")
+          .in("id", proposerUserIds);
+
+  if (proposerProfilesResult.error) {
+    schemaError = schemaError ?? proposerProfilesResult.error.message;
   }
 
   const proposalIds = (proposalsResult.data ?? []).map((row) => row.id as string);
@@ -151,22 +167,24 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
     }
   }
 
+  const proposerNameByUserId = new Map<string, string>();
+  for (const row of proposerProfilesResult.data ?? []) {
+    const displayName = (row.display_name as string | null) ?? null;
+    const username = (row.username as string | null) ?? null;
+    proposerNameByUserId.set(row.id as string, displayName || username || "Jugador");
+  }
+
   prizeProposals =
     proposalsResult.data?.map((row) => {
-      const rawProfile = row.profiles as
-        | { display_name?: string | null; username?: string | null }
-        | Array<{ display_name?: string | null; username?: string | null }>
-        | null;
-
-      const profile = Array.isArray(rawProfile) ? (rawProfile[0] ?? null) : rawProfile;
-      const proposerName = profile?.display_name || profile?.username || "Jugador";
+      const proposerUserId = row.proposer_user_id as string;
+      const proposerName = proposerNameByUserId.get(proposerUserId) ?? "Jugador";
       const proposalId = row.id as string;
       const proposalKind = ((row.proposal_kind as "money" | "material" | null) ?? "money");
       const currencyCode = (row.currency_code as "ARS" | "USD" | null) ?? null;
 
       return {
         id: proposalId,
-        proposerUserId: row.proposer_user_id as string,
+        proposerUserId,
         proposerName,
         proposalKind,
         amountPerPerson: row.amount_per_person === null ? null : Number(row.amount_per_person),
