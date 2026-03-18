@@ -45,8 +45,8 @@ export function DashboardNav({
 
   return (
     <div className="panel sticky top-3 z-40 overflow-visible p-3 sm:p-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-end gap-2.5">
+        <div className="mr-1 flex items-center gap-3 rounded-xl border-2 border-[#1d2430] bg-[#fffdf7] px-3 py-2 shadow-[2px_2px_0_#1d2430]">
           <Link
             href="/dashboard"
             className="inline-flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[#1d2430] bg-[#1d2430] text-sm font-black text-[#ffe289]"
@@ -62,32 +62,26 @@ export function DashboardNav({
           </div>
         </div>
 
-        <div className="flex min-w-0 w-full items-center gap-2 lg:w-auto lg:justify-end">
-          <div className="scroll-hover-x min-w-0 flex-1 lg:flex-none lg:max-w-[700px]">
-            <div className="flex min-w-max items-center gap-2">
-              {navItems.map((item) => {
-                const active = isActive(pathname, item.href, "exact" in item ? item.exact : false);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    className={active ? "nav-item nav-item-active" : "nav-item"}
-                  >
-                    {"key" in item && item.key === "admin" ? "Admin" : copy.nav[item.key]}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
+        {navItems.map((item) => {
+          const active = isActive(pathname, item.href, "exact" in item ? item.exact : false);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={active ? "page" : undefined}
+              className={active ? "nav-item nav-item-active" : "nav-item"}
+            >
+              {"key" in item && item.key === "admin" ? "Admin" : copy.nav[item.key]}
+            </Link>
+          );
+        })}
 
-          <NotificationsMenu items={notifications} unreadCount={unreadNotifications} />
+        <NotificationsMenu items={notifications} unreadCount={unreadNotifications} />
 
-          <SignOutButton
-            className="shrink-0 text-xs sm:text-sm"
-            labels={{ idle: copy.nav.signOut, pending: copy.nav.signingOut }}
-          />
-        </div>
+        <SignOutButton
+          className="shrink-0 text-xs sm:text-sm"
+          labels={{ idle: copy.nav.signOut, pending: copy.nav.signingOut }}
+        />
       </div>
     </div>
   );

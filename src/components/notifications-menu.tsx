@@ -42,7 +42,7 @@ export function NotificationsMenu({ items, unreadCount }: NotificationsMenuProps
   const [isMarkingAll, setIsMarkingAll] = useState(false);
   const [isMarkingId, setIsMarkingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [panelStyle, setPanelStyle] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [panelStyle, setPanelStyle] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
 
   function calculatePanelStyle() {
     const trigger = triggerRef.current;
@@ -53,13 +53,23 @@ export function NotificationsMenu({ items, unreadCount }: NotificationsMenuProps
     const rect = trigger.getBoundingClientRect();
     const viewportPadding = 12;
     const width = Math.min(370, Math.max(280, window.innerWidth - viewportPadding * 2));
+    const estimatedPanelHeight = Math.min(430, window.innerHeight - viewportPadding * 2);
     const left = Math.min(
       Math.max(viewportPadding, rect.right - width),
       window.innerWidth - width - viewportPadding,
     );
-    const top = rect.bottom + 8;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
 
-    return { top, left, width };
+    let top = rect.bottom + 8;
+    if (spaceBelow < estimatedPanelHeight && spaceAbove > spaceBelow) {
+      top = Math.max(viewportPadding, rect.top - estimatedPanelHeight - 8);
+    } else {
+      top = Math.min(top, window.innerHeight - estimatedPanelHeight - viewportPadding);
+      top = Math.max(viewportPadding, top);
+    }
+
+    return { top, left, width, maxHeight: estimatedPanelHeight };
   }
 
   function handleToggleMenu() {
@@ -182,6 +192,7 @@ export function NotificationsMenu({ items, unreadCount }: NotificationsMenuProps
                 top: panelStyle.top,
                 left: panelStyle.left,
                 width: panelStyle.width,
+                maxHeight: panelStyle.maxHeight,
               }}
             >
               <div className="flex items-center justify-between gap-2">
