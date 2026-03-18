@@ -45,7 +45,7 @@ export function DashboardNav({
 
   return (
     <div className="panel sticky top-3 z-40 overflow-visible p-3 sm:p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-3">
           <Link
             href="/dashboard"
@@ -62,25 +62,29 @@ export function DashboardNav({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {navItems.map((item) => {
-            const active = isActive(pathname, item.href, "exact" in item ? item.exact : false);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={active ? "nav-item nav-item-active" : "nav-item"}
-              >
-                {"key" in item && item.key === "admin" ? "Admin" : copy.nav[item.key]}
-              </Link>
-            );
-          })}
+        <div className="flex min-w-0 flex-1 items-center gap-2 lg:justify-end">
+          <div className="scroll-hover-x min-w-0 flex-1 lg:max-w-[700px]">
+            <div className="flex min-w-max items-center gap-2 pb-1">
+              {navItems.map((item) => {
+                const active = isActive(pathname, item.href, "exact" in item ? item.exact : false);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    className={active ? "nav-item nav-item-active" : "nav-item"}
+                  >
+                    {"key" in item && item.key === "admin" ? "Admin" : copy.nav[item.key]}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
 
           <NotificationsMenu items={notifications} unreadCount={unreadNotifications} />
 
           <SignOutButton
-            className="text-xs sm:text-sm"
+            className="shrink-0 text-xs sm:text-sm"
             labels={{ idle: copy.nav.signOut, pending: copy.nav.signingOut }}
           />
         </div>
