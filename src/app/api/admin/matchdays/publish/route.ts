@@ -7,6 +7,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 const publishMatchdaySchema = z.object({
   matchdayId: z.string().uuid(),
   notify: z.boolean().optional(),
+  finalize: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -33,7 +34,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Formato de fecha invalido." }, { status: 400 });
   }
 
-  const { matchdayId, notify } = parseResult.data;
+  const { matchdayId, notify, finalize } = parseResult.data;
+  const shouldFinalize = finalize ?? true;
 
   const matchdayResult = await supabase
     .from("matchdays")
@@ -49,10 +51,12 @@ export async function POST(request: Request) {
   }
 
   const alreadyFinalized = Boolean(matchdayResult.data.is_finalized);
-  if (!alreadyFinalized) {
+  const needsUpdate = shouldFinalize ? !alreadyFinalized : alreadyFinalized;
+
+  if (needsUpdate) {
     const updateResult = await supabase
       .from("matchdays")
-      .update({ is_finalized: true })
+      .update({ is_finalized: shouldFinalize })
       .eq("id", matchdayId);
 
     if (updateResult.error) {
@@ -60,7 +64,7 @@ export async function POST(request: Request) {
     }
   }
 
-  if (notify ?? true) {
+  if (shouldFinalize && (notify ?? true)) {
     const notifyResult = await supabase.from("notifications").insert({
       kind: "matchday_points",
       audience: "global",
@@ -77,8 +81,8 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     ok: true,
+    nowFinalized: shouldFinalize,
     alreadyFinalized,
     matchdayName: matchdayResult.data.name,
   });
 }
-

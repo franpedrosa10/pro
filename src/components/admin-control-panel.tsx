@@ -137,7 +137,7 @@ export function AdminControlPanel({ matchdays, fixtures, leagues }: AdminControl
     router.refresh();
   }
 
-  async function publishMatchdayPoints(matchdayId: string) {
+  async function setMatchdayPublication(matchdayId: string, finalize: boolean) {
     setError(null);
     setInfo(null);
     setPublishingMatchdayId(matchdayId);
@@ -147,22 +147,32 @@ export function AdminControlPanel({ matchdays, fixtures, leagues }: AdminControl
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         matchdayId,
-        notify: true,
+        finalize,
+        notify: finalize,
       }),
     });
     const payload = await response.json();
     setPublishingMatchdayId(null);
 
     if (!response.ok) {
-      setError(payload.error ?? "No se pudo publicar la fecha.");
+      setError(payload.error ?? "No se pudo actualizar el estado de la fecha.");
       return;
     }
 
-    setInfo(
-      payload.alreadyFinalized
-        ? `La fecha ${payload.matchdayName} ya estaba publicada.`
-        : `Puntos publicados para ${payload.matchdayName}.`,
-    );
+    if (finalize) {
+      setInfo(
+        payload.alreadyFinalized
+          ? `La fecha ${payload.matchdayName} ya estaba publicada.`
+          : `Puntos publicados para ${payload.matchdayName}.`,
+      );
+    } else {
+      setInfo(
+        payload.alreadyFinalized
+          ? `La fecha ${payload.matchdayName} volvio a estado pendiente.`
+          : `La fecha ${payload.matchdayName} ya estaba pendiente.`,
+      );
+    }
+
     router.refresh();
   }
 
@@ -322,11 +332,15 @@ export function AdminControlPanel({ matchdays, fixtures, leagues }: AdminControl
               </div>
               <button
                 type="button"
-                onClick={() => publishMatchdayPoints(matchday.id)}
+                onClick={() => setMatchdayPublication(matchday.id, !matchday.isFinalized)}
                 disabled={publishingMatchdayId === matchday.id}
                 className="btn-ghost px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {publishingMatchdayId === matchday.id ? "Publicando..." : "Publicar"}
+                {publishingMatchdayId === matchday.id
+                  ? "Guardando..."
+                  : matchday.isFinalized
+                    ? "Despublicar"
+                    : "Publicar"}
               </button>
             </div>
           ))}
@@ -376,22 +390,25 @@ export function AdminControlPanel({ matchdays, fixtures, leagues }: AdminControl
                       {fixture.matchdayName} | {fixture.kickoffLabel}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      className="input-tech w-16 text-center text-sm"
-                      value={draft.homeScore}
-                      onChange={(event) => updateFixtureDraft(fixture.id, { homeScore: event.target.value })}
-                      inputMode="numeric"
-                    />
-                    <span className="text-sm text-[#6b7280]">-</span>
-                    <input
-                      className="input-tech w-16 text-center text-sm"
-                      value={draft.awayScore}
-                      onChange={(event) => updateFixtureDraft(fixture.id, { awayScore: event.target.value })}
-                      inputMode="numeric"
-                    />
+                  <div className="mt-2.5 grid w-full gap-2 md:grid-cols-[220px_160px_auto_auto] md:items-center">
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5">
+                      <input
+                        className="input-tech text-center text-sm"
+                        value={draft.homeScore}
+                        onChange={(event) => updateFixtureDraft(fixture.id, { homeScore: event.target.value })}
+                        inputMode="numeric"
+                      />
+                      <span className="text-sm text-[#6b7280]">-</span>
+                      <input
+                        className="input-tech text-center text-sm"
+                        value={draft.awayScore}
+                        onChange={(event) => updateFixtureDraft(fixture.id, { awayScore: event.target.value })}
+                        inputMode="numeric"
+                      />
+                    </div>
+
                     <select
-                      className="select-tech w-[132px] text-sm"
+                      className="select-tech text-sm"
                       value={draft.status}
                       onChange={(event) =>
                         updateFixtureDraft(fixture.id, { status: event.target.value as FixtureDraft["status"] })}
@@ -400,6 +417,7 @@ export function AdminControlPanel({ matchdays, fixtures, leagues }: AdminControl
                       <option value="in_progress">En juego</option>
                       <option value="finished">Finalizado</option>
                     </select>
+
                     <label className="inline-flex items-center gap-1 text-xs text-[#4c5564]">
                       <input
                         type="checkbox"
@@ -408,11 +426,12 @@ export function AdminControlPanel({ matchdays, fixtures, leagues }: AdminControl
                       />
                       Notificar
                     </label>
+
                     <button
                       type="button"
                       onClick={() => saveFixture(fixture.id)}
                       disabled={savingFixtureId === fixture.id}
-                      className="btn-primary px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-60"
+                      className="btn-primary min-w-[108px] whitespace-nowrap px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {savingFixtureId === fixture.id ? "Guardando..." : "Guardar"}
                     </button>
@@ -426,4 +445,3 @@ export function AdminControlPanel({ matchdays, fixtures, leagues }: AdminControl
     </div>
   );
 }
-
