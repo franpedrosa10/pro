@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { LeaguePrizeVoting } from "@/components/league-prize-voting";
 import { requireUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +22,20 @@ type LeagueRow = {
   points: number;
 };
 
+type LeaguePrizeProposal = {
+  id: string;
+  proposerUserId: string;
+  proposerName: string;
+  proposalKind: "money" | "material";
+  amountPerPerson: number | null;
+  currencyCode: "ARS" | "USD" | null;
+  materialDescription: string | null;
+  note: string | null;
+  votesCount: number;
+  votedByMe: boolean;
+  createdAtLabel: string;
+};
+
 function parseMatchdayParam(value: string | string[] | undefined): string | null {
   if (!value) {
     return null;
@@ -29,6 +44,14 @@ function parseMatchdayParam(value: string | string[] | undefined): string | null
     return value[0] ?? null;
   }
   return value;
+}
+
+function formatProposalDate(isoValue: string) {
+  return new Intl.DateTimeFormat("es-AR", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "America/Argentina/Buenos_Aires",
+  }).format(new Date(isoValue));
 }
 
 export default async function LeagueStandingsPage({ params, searchParams }: LeagueStandingsPageProps) {
@@ -41,7 +64,7 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
 
   const leagueResult = await supabase
     .from("leagues")
-    .select("id, name, join_code")
+    .select("id, name, join_code, is_country_league")
     .eq("id", leagueId)
     .maybeSingle();
 
@@ -52,6 +75,7 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
     notFound();
   }
 
+  const isCountryLeague = Boolean(leagueResult.data.is_country_league);
   const invitePath = `/invite/${leagueResult.data.join_code}`;
 
   const matchdaysResult = await supabase
@@ -72,6 +96,88 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
 
   const selectedMatchday =
     matchdays.find((matchday) => matchday.id === requestedMatchdayId) ?? null;
+
+  const firstRoundResult = await supabase
+    .from("matchdays")
+    .select("id, ends_at")
+    .eq("order_index", 1)
+    .maybeSingle();
+
+  if (firstRoundResult.error) {
+    schemaError = schemaError ?? firstRoundResult.error.message;
+  }
+
+  const firstRoundEndsAtIso = (firstRoundResult.data?.ends_at as string | null | undefined) ?? null;
+  const firstRoundOpenResult = await supabase.rpc("is_first_round_open");
+  if (firstRoundOpenResult.error) {
+    schemaError = schemaError ?? firstRoundOpenResult.error.message;
+  }
+  const isPrizeWindowOpen = Boolean(firstRoundOpenResult.data);
+
+  let prizeProposals: LeaguePrizeProposal[] = [];
+
+  const proposalsResult = await supabase
+    .from("league_prize_proposals")
+    .select(
+      "id, proposer_user_id, proposal_kind, amount_per_person, currency_code, material_description, note, created_at, profiles(display_name, username)",
+    )
+    .eq("league_id", leagueId)
+    .order("created_at", { ascending: true });
+
+  if (proposalsResult.error) {
+    schemaError = schemaError ?? proposalsResult.error.message;
+  }
+
+  const proposalIds = (proposalsResult.data ?? []).map((row) => row.id as string);
+  const votesResult =
+    proposalIds.length === 0
+      ? { data: [] as Array<{ proposal_id: string; user_id: string }>, error: null }
+      : await supabase
+          .from("league_prize_votes")
+          .select("proposal_id, user_id")
+          .in("proposal_id", proposalIds);
+
+  if (votesResult.error) {
+    schemaError = schemaError ?? votesResult.error.message;
+  }
+
+  const voteCountByProposalId = new Map<string, number>();
+  const votedByMe = new Set<string>();
+  for (const row of votesResult.data ?? []) {
+    const proposalId = row.proposal_id as string;
+    voteCountByProposalId.set(proposalId, (voteCountByProposalId.get(proposalId) ?? 0) + 1);
+    if ((row.user_id as string) === user.id) {
+      votedByMe.add(proposalId);
+    }
+  }
+
+  prizeProposals =
+    proposalsResult.data?.map((row) => {
+      const rawProfile = row.profiles as
+        | { display_name?: string | null; username?: string | null }
+        | Array<{ display_name?: string | null; username?: string | null }>
+        | null;
+
+      const profile = Array.isArray(rawProfile) ? (rawProfile[0] ?? null) : rawProfile;
+      const proposerName = profile?.display_name || profile?.username || "Jugador";
+      const proposalId = row.id as string;
+      const proposalKind = ((row.proposal_kind as "money" | "material" | null) ?? "money");
+      const currencyCode = (row.currency_code as "ARS" | "USD" | null) ?? null;
+
+      return {
+        id: proposalId,
+        proposerUserId: row.proposer_user_id as string,
+        proposerName,
+        proposalKind,
+        amountPerPerson: row.amount_per_person === null ? null : Number(row.amount_per_person),
+        currencyCode,
+        materialDescription: (row.material_description as string | null) ?? null,
+        note: (row.note as string | null) ?? null,
+        votesCount: voteCountByProposalId.get(proposalId) ?? 0,
+        votedByMe: votedByMe.has(proposalId),
+        createdAtLabel: formatProposalDate(row.created_at as string),
+      };
+    }) ?? [];
 
   let rows: LeagueRow[] = [];
 
@@ -138,7 +244,9 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
 
     const profileByUserId = new Map<string, { displayName: string; countryName: string | null }>();
     (membersResult.data ?? []).forEach((row) => {
-      const profile = row.profiles as { display_name?: string | null; username?: string | null; country_name?: string | null } | null;
+      const profile = row.profiles as
+        | { display_name?: string | null; username?: string | null; country_name?: string | null }
+        | null;
       const displayName = profile?.display_name || profile?.username || "Jugador";
       profileByUserId.set(row.user_id as string, {
         displayName,
@@ -152,10 +260,10 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
     });
 
     rows = Array.from(profileByUserId.entries())
-      .map(([userId, profile]) => {
-        const points = prodeByUserId.get(userId) ?? 0;
+      .map(([memberUserId, profile]) => {
+        const points = prodeByUserId.get(memberUserId) ?? 0;
         return {
-          userId,
+          userId: memberUserId,
           displayName: profile.displayName,
           countryName: profile.countryName,
           points,
@@ -172,18 +280,18 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
             <p className="chip w-fit">Liga privada</p>
             <h1 className="mt-2 text-5xl leading-none sm:text-6xl">{leagueResult.data.name}</h1>
             <p className="section-subtitle mt-2 text-sm">
-              Código de ingreso:{" "}
+              Codigo de ingreso:{" "}
               <span className="rounded bg-[#1d2430] px-2 py-1 font-mono text-xs text-[#ffe289]">
                 {leagueResult.data.join_code}
               </span>
             </p>
             <p className="mt-2 text-xs text-[#4c5564]">
-              Link de invitación: <span className="font-mono">{invitePath}</span>
+              Link de invitacion: <span className="font-mono">{invitePath}</span>
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link href={invitePath} className="btn-ghost px-3 py-2 text-sm">
-              Invitación
+              Invitacion
             </Link>
             <Link href="/dashboard/leagues" className="btn-ghost px-3 py-2 text-sm">
               Ligas
@@ -225,11 +333,22 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
         </p>
       </section>
 
-      {schemaError ? <div className="alert-warning rounded-2xl p-4 text-sm">Error al cargar la tabla de liga: {schemaError}</div> : null}
+      {schemaError ? (
+        <div className="alert-warning rounded-2xl p-4 text-sm">Error al cargar la tabla de liga: {schemaError}</div>
+      ) : null}
+
+      <LeaguePrizeVoting
+        leagueId={leagueId}
+        currentUserId={user.id}
+        isCountryLeague={isCountryLeague}
+        firstRoundEndsAtIso={firstRoundEndsAtIso}
+        isWindowOpen={isPrizeWindowOpen}
+        proposals={prizeProposals}
+      />
 
       <section className="panel p-5">
         {rows.length === 0 ? (
-          <p className="section-subtitle text-sm">Todavía no hay miembros o puntajes para esta vista.</p>
+          <p className="section-subtitle text-sm">Todavia no hay miembros o puntajes para esta vista.</p>
         ) : (
           <div className="table-shell">
             <table className="w-full border-collapse text-sm">
@@ -237,7 +356,7 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
                 <tr className="text-left">
                   <th className="px-3 py-2">#</th>
                   <th className="px-3 py-2">Jugador</th>
-                  <th className="px-3 py-2">País</th>
+                  <th className="px-3 py-2">Pais</th>
                   <th className="px-3 py-2">Puntos</th>
                 </tr>
               </thead>
@@ -266,4 +385,3 @@ export default async function LeagueStandingsPage({ params, searchParams }: Leag
     </div>
   );
 }
-

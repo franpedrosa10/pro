@@ -45,6 +45,12 @@ Direccion de producto actual:
   - Compartir invitacion por link
   - Unirse a liga oficial por pais (auto-create + auto-join)
   - Ruta de invitacion: `/invite/[joinCode]`
+  - Premio por persona:
+    - propuesta por usuario (monto o premio material)
+    - votos multiples (puede votar varias propuestas)
+    - habilitado solo hasta el cierre de la Fecha 1
+    - deshabilitado en ligas oficiales por pais
+    - aclaracion visible: el premio corre por cuenta de los jugadores (no lo gestiona la plataforma)
 - Resultados:
   - Ranking Prode global
   - Ranking por fecha
@@ -73,6 +79,8 @@ Incluye:
 - Tablas core (`profiles`, `fixtures`, `prode_predictions`, `leagues`, `league_members`, etc.)
 - Triggers de integridad de Prode (`prevent_late_predictions`, `validate_prode_matchday_multiplier`, `prevent_late_podium_picks`)
 - Tablas bonus Prode (`prode_matchday_multipliers`, `prode_podium_picks`)
+- Tablas sociales de ligas (`league_prize_proposals`, `league_prize_votes`)
+- Triggers de ligas para premio (`validate_league_prize_proposal`, `validate_league_prize_vote`)
 - Vistas de scoring (`v_prode_user_fixture_points`, `v_prode_user_matchday_scores`, `v_prode_user_totals`)
 - Vistas agregadas (`v_global_standings`, `v_league_standings`)
 - Funciones de ligas (`join_league_with_code`, `join_country_league`)
@@ -95,6 +103,8 @@ Incluye:
 - `POST /api/leagues`
 - `POST /api/leagues/join`
 - `POST /api/leagues/country`
+- `POST /api/leagues/prize/proposal`
+- `PUT /api/leagues/prize/vote`
 - `PUT /api/prode/double`
 - `PUT /api/prode/podium`
 - `PUT /api/prode/predictions`
@@ -114,8 +124,7 @@ Endpoint legacy (no promocionado en UX):
    - `NEXT_PUBLIC_SITE_URL`
 4. Ejecutar en Supabase SQL Editor:
    - `supabase/schema.sql`
-   - si ya tenes DB creada y falla `league_id is ambiguous`: correr `supabase/hotfix_join_league_ambiguous.sql`
-   - para actualizar DB existente con `x2 + podio`: correr `supabase/hotfix_prode_x2_podium.sql`
+   - si ya tenes DB existente y no queres recrear todo, para sumar premios de ligas: `supabase/hotfix_league_prize_proposals.sql`
    - `supabase/seed.sql` es opcional solo para datos demo legacy
 5. `npm run dev` (usa `next dev --webpack` para evitar error de persistencia de Turbopack)
 
