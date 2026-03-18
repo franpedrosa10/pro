@@ -44,26 +44,47 @@ export function NotificationsMenu({ items, unreadCount }: NotificationsMenuProps
   const [error, setError] = useState<string | null>(null);
   const [panelStyle, setPanelStyle] = useState<{ top: number; left: number; width: number } | null>(null);
 
+  function calculatePanelStyle() {
+    const trigger = triggerRef.current;
+    if (!trigger || typeof window === "undefined") {
+      return null;
+    }
+
+    const rect = trigger.getBoundingClientRect();
+    const viewportPadding = 12;
+    const width = Math.min(370, Math.max(280, window.innerWidth - viewportPadding * 2));
+    const left = Math.min(
+      Math.max(viewportPadding, rect.right - width),
+      window.innerWidth - width - viewportPadding,
+    );
+    const top = rect.bottom + 8;
+
+    return { top, left, width };
+  }
+
+  function handleToggleMenu() {
+    if (isOpen) {
+      setIsOpen(false);
+      return;
+    }
+
+    const nextStyle = calculatePanelStyle();
+    if (nextStyle) {
+      setPanelStyle(nextStyle);
+    }
+    setIsOpen(true);
+  }
+
   useEffect(() => {
     if (!isOpen) {
       return;
     }
 
     function updatePosition() {
-      const trigger = triggerRef.current;
-      if (!trigger) {
-        return;
+      const nextStyle = calculatePanelStyle();
+      if (nextStyle) {
+        setPanelStyle(nextStyle);
       }
-
-      const rect = trigger.getBoundingClientRect();
-      const viewportPadding = 12;
-      const width = Math.min(370, Math.max(280, window.innerWidth - viewportPadding * 2));
-      const left = Math.min(
-        Math.max(viewportPadding, rect.right - width),
-        window.innerWidth - width - viewportPadding,
-      );
-      const top = rect.bottom + 8;
-      setPanelStyle({ top, left, width });
     }
 
     function handleOutsideClick(event: MouseEvent) {
@@ -139,7 +160,7 @@ export function NotificationsMenu({ items, unreadCount }: NotificationsMenuProps
       <button
         ref={triggerRef}
         type="button"
-        onClick={() => setIsOpen((current) => !current)}
+        onClick={handleToggleMenu}
         className="nav-item relative px-3 py-2 text-xs"
         aria-label="Avisos"
       >
