@@ -44,7 +44,7 @@ export function DashboardNav({
     : BASE_NAV_ITEMS;
 
   return (
-    <div className="panel sticky top-3 z-40 p-3 sm:p-4">
+    <div className="panel sticky top-3 z-40 overflow-visible p-3 sm:p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Link

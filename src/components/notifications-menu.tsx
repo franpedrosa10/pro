@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -80,7 +80,7 @@ export function NotificationsMenu({ items, unreadCount }: NotificationsMenuProps
   }
 
   return (
-    <div className="relative">
+    <div className="relative shrink-0">
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
@@ -96,7 +96,7 @@ export function NotificationsMenu({ items, unreadCount }: NotificationsMenuProps
       </button>
 
       {isOpen ? (
-        <div className="panel panel-popover absolute right-0 z-50 mt-2 w-[min(94vw,370px)] p-3">
+        <div className="panel panel-popover absolute right-0 top-[calc(100%+0.5rem)] z-[70] w-[min(94vw,370px)] p-3 max-sm:left-0 max-sm:right-auto">
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-semibold text-[#1f2937]">Notificaciones</p>
             <button
@@ -113,11 +113,11 @@ export function NotificationsMenu({ items, unreadCount }: NotificationsMenuProps
 
           <div className="mt-2 max-h-[360px] space-y-2 overflow-auto pr-1">
             {items.length === 0 ? (
-              <p className="panel-soft p-3 text-xs text-[#6b7280]">No tenés notificaciones por ahora.</p>
+              <p className="panel-soft p-3 text-xs text-[#6b7280]">No tenes notificaciones por ahora.</p>
             ) : (
               items.map((item) => {
                 const unread = !item.isRead;
-                const actionLabel = isMarkingId === item.id ? "..." : unread ? "Marcar leída" : "Abrir";
+                const actionLabel = isMarkingId === item.id ? "..." : unread ? "Marcar leida" : "Abrir";
 
                 return (
                   <article key={item.id} className={`panel-soft p-2.5 ${unread ? "fixture-x2-active" : ""}`}>
@@ -168,3 +168,4 @@ export function NotificationsMenu({ items, unreadCount }: NotificationsMenuProps
     </div>
   );
 }
+
