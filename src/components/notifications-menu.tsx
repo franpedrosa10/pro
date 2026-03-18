@@ -177,7 +177,12 @@ export function NotificationsMenu({ items, unreadCount }: NotificationsMenuProps
             <div
               ref={panelRef}
               className="panel panel-popover fixed z-[120] p-3"
-              style={{ top: panelStyle.top, left: panelStyle.left, width: panelStyle.width }}
+              style={{
+                position: "fixed",
+                top: panelStyle.top,
+                left: panelStyle.left,
+                width: panelStyle.width,
+              }}
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-semibold text-[#1f2937]">Notificaciones</p>
