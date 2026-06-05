@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Manrope, Barlow_Condensed, JetBrains_Mono } from "next/font/google";
 
+import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { getUiDictionary } from "@/lib/i18n";
 import { getRequestLocale } from "@/lib/i18n/server";
 
@@ -25,6 +26,24 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Prode Mundial 2026",
   description: "Prode del Mundial con ligas privadas y ranking por país.",
+  applicationName: "Prode Mundial 2026",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Prode 2026",
+    statusBarStyle: "default",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#ffd447",
 };
 
 export default async function RootLayout({
@@ -43,6 +62,7 @@ export default async function RootLayout({
       >
         <div className="flex min-h-screen flex-col">
           <div className="flex-1">{children}</div>
+          <PwaInstallPrompt />
           <footer className="mt-6 border-t-2 border-[#1d2430] bg-[#fff7d8]">
             <div className="app-container flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-xs text-[#4c5564] sm:text-sm">
               <span>{copy.footer.copyright}</span>

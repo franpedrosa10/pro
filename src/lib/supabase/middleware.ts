@@ -3,7 +3,15 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { getSupabaseEnv } from "@/lib/supabase/env";
 
-const publicRoutes = new Set(["/", "/login", "/auth/callback", "/forgot-password", "/reset-password"]);
+const publicRoutes = new Set([
+  "/",
+  "/login",
+  "/auth/callback",
+  "/forgot-password",
+  "/reset-password",
+  "/manifest.webmanifest",
+  "/sw.js",
+]);
 
 export async function updateSession(request: NextRequest) {
   const response = NextResponse.next({
@@ -32,7 +40,8 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
-  const isPublicRoute = publicRoutes.has(pathname) || pathname.startsWith("/auth/callback");
+  const isPublicRoute =
+    publicRoutes.has(pathname) || pathname.startsWith("/auth/callback") || pathname.startsWith("/invite/");
   const isApiRoute = pathname.startsWith("/api");
   const isAsset =
     pathname.startsWith("/_next") ||

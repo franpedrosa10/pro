@@ -108,7 +108,7 @@ Incluye:
 - Funciones de notificaciones/admin (`is_admin_user`, `can_access_notification`, `get_my_notifications`, etc.)
 - Policies RLS completas
 - Dataset base del Mundial 2026:
-  - Equipos reales + placeholders de repechaje y llaves
+  - 48 equipos reales de fase de grupos + placeholders de llaves
   - 8 matchdays (3 de grupos + eliminatorias)
   - 104 fixtures cargados de forma idempotente
 

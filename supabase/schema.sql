@@ -1876,18 +1876,36 @@ create policy prode_podium_delete_self on public.prode_podium_picks
 -- Keep this in schema.sql so a single run leaves the project ready to use.
 -- ============================================================================
 
+update public.national_teams nt
+set fifa_code = code_updates.new_code
+from (
+  values
+    ('DMA', 'CZE'),
+    ('ITP', 'BIH'),
+    ('TRK', 'TUR'),
+    ('USP', 'SWE'),
+    ('IBS', 'IRQ'),
+    ('JDC', 'COD')
+) as code_updates(old_code, new_code)
+where nt.fifa_code = code_updates.old_code
+  and not exists (
+    select 1
+    from public.national_teams existing
+    where existing.fifa_code = code_updates.new_code
+  );
+
 insert into public.national_teams (fifa_code, name, group_letter)
 values
-  -- Real teams + intercontinental playoff placeholders (group stage)
+  -- Group stage
   ('MEX', 'Mexico', 'A'),
   ('RSA', 'Sudafrica', 'A'),
   ('KOR', 'Corea del Sur', 'A'),
-  ('DMA', 'Dinamarca/Macedonia/Republica Checa/Irlanda', 'A'),
+  ('CZE', 'Republica Checa', 'A'),
 
   ('CAN', 'Canada', 'B'),
+  ('BIH', 'Bosnia y Herzegovina', 'B'),
   ('QAT', 'Qatar', 'B'),
   ('SUI', 'Suiza', 'B'),
-  ('ITP', 'Italia/Nigeria/Gales/Bosnia', 'B'),
 
   ('BRA', 'Brasil', 'C'),
   ('MAR', 'Marruecos', 'C'),
@@ -1897,7 +1915,7 @@ values
   ('USA', 'Estados Unidos', 'D'),
   ('PAR', 'Paraguay', 'D'),
   ('AUS', 'Australia', 'D'),
-  ('TRK', 'Turquia/Rumania/Eslovaquia/Kosovo', 'D'),
+  ('TUR', 'Turquia', 'D'),
 
   ('GER', 'Alemania', 'E'),
   ('CUW', 'Curazao', 'E'),
@@ -1906,8 +1924,8 @@ values
 
   ('NED', 'Paises Bajos', 'F'),
   ('JPN', 'Japon', 'F'),
+  ('SWE', 'Suecia', 'F'),
   ('TUN', 'Tunez', 'F'),
-  ('USP', 'Ucrania/Suecia/Polonia/Albania', 'F'),
 
   ('BEL', 'Belgica', 'G'),
   ('EGY', 'Egipto', 'G'),
@@ -1921,8 +1939,8 @@ values
 
   ('FRA', 'Francia', 'I'),
   ('SEN', 'Senegal', 'I'),
+  ('IRQ', 'Irak', 'I'),
   ('NOR', 'Noruega', 'I'),
-  ('IBS', 'Irak/Bolivia/Surinam', 'I'),
 
   ('ARG', 'Argentina', 'J'),
   ('ALG', 'Argelia', 'J'),
@@ -1930,9 +1948,9 @@ values
   ('JOR', 'Jordania', 'J'),
 
   ('POR', 'Portugal', 'K'),
-  ('COL', 'Colombia', 'K'),
+  ('COD', 'RD Congo', 'K'),
   ('UZB', 'Uzbekistan', 'K'),
-  ('JDC', 'Jamaica/RD Congo/Nueva Caledonia', 'K'),
+  ('COL', 'Colombia', 'K'),
 
   ('ENG', 'Inglaterra', 'L'),
   ('CRO', 'Croacia', 'L'),
@@ -2022,40 +2040,40 @@ from (
   values
     -- Group stage: Fecha 1 (matches 1-24)
     (1, '2026-06-11T16:00:00-03', 'MEX', 'RSA'),
-    (1, '2026-06-11T23:00:00-03', 'KOR', 'DMA'),
-    (1, '2026-06-12T16:00:00-03', 'CAN', 'ITP'),
+    (1, '2026-06-11T23:00:00-03', 'KOR', 'CZE'),
+    (1, '2026-06-12T16:00:00-03', 'CAN', 'BIH'),
     (1, '2026-06-12T22:00:00-03', 'USA', 'PAR'),
     (1, '2026-06-13T16:00:00-03', 'QAT', 'SUI'),
     (1, '2026-06-13T19:00:00-03', 'BRA', 'MAR'),
     (1, '2026-06-13T22:00:00-03', 'HAI', 'SCO'),
-    (1, '2026-06-14T01:00:00-03', 'AUS', 'TRK'),
+    (1, '2026-06-14T01:00:00-03', 'AUS', 'TUR'),
     (1, '2026-06-14T14:00:00-03', 'GER', 'CUW'),
     (1, '2026-06-14T17:00:00-03', 'NED', 'JPN'),
     (1, '2026-06-14T20:00:00-03', 'CIV', 'ECU'),
-    (1, '2026-06-14T23:00:00-03', 'USP', 'TUN'),
+    (1, '2026-06-14T23:00:00-03', 'SWE', 'TUN'),
     (1, '2026-06-15T13:00:00-03', 'ESP', 'CPV'),
     (1, '2026-06-15T16:00:00-03', 'BEL', 'EGY'),
     (1, '2026-06-15T19:00:00-03', 'KSA', 'URU'),
     (1, '2026-06-15T22:00:00-03', 'IRN', 'NZL'),
     (1, '2026-06-16T16:00:00-03', 'FRA', 'SEN'),
-    (1, '2026-06-16T19:00:00-03', 'IBS', 'NOR'),
+    (1, '2026-06-16T19:00:00-03', 'IRQ', 'NOR'),
     (1, '2026-06-16T22:00:00-03', 'ARG', 'ALG'),
     (1, '2026-06-17T01:00:00-03', 'AUT', 'JOR'),
-    (1, '2026-06-17T14:00:00-03', 'POR', 'JDC'),
+    (1, '2026-06-17T14:00:00-03', 'POR', 'COD'),
     (1, '2026-06-17T17:00:00-03', 'ENG', 'CRO'),
     (1, '2026-06-17T20:00:00-03', 'GHA', 'PAN'),
     (1, '2026-06-17T23:00:00-03', 'UZB', 'COL'),
 
     -- Group stage: Fecha 2 (matches 25-48)
-    (2, '2026-06-18T13:00:00-03', 'DMA', 'RSA'),
-    (2, '2026-06-18T16:00:00-03', 'SUI', 'ITP'),
+    (2, '2026-06-18T13:00:00-03', 'CZE', 'RSA'),
+    (2, '2026-06-18T16:00:00-03', 'SUI', 'BIH'),
     (2, '2026-06-18T19:00:00-03', 'CAN', 'QAT'),
     (2, '2026-06-18T22:00:00-03', 'MEX', 'KOR'),
     (2, '2026-06-19T16:00:00-03', 'USA', 'AUS'),
     (2, '2026-06-19T19:00:00-03', 'SCO', 'MAR'),
     (2, '2026-06-19T22:00:00-03', 'BRA', 'HAI'),
-    (2, '2026-06-20T01:00:00-03', 'TRK', 'PAR'),
-    (2, '2026-06-20T14:00:00-03', 'NED', 'USP'),
+    (2, '2026-06-20T01:00:00-03', 'TUR', 'PAR'),
+    (2, '2026-06-20T14:00:00-03', 'NED', 'SWE'),
     (2, '2026-06-20T17:00:00-03', 'GER', 'CIV'),
     (2, '2026-06-20T21:00:00-03', 'ECU', 'CUW'),
     (2, '2026-06-21T01:00:00-03', 'TUN', 'JPN'),
@@ -2064,29 +2082,29 @@ from (
     (2, '2026-06-21T19:00:00-03', 'URU', 'CPV'),
     (2, '2026-06-21T22:00:00-03', 'NZL', 'EGY'),
     (2, '2026-06-22T14:00:00-03', 'ARG', 'AUT'),
-    (2, '2026-06-22T18:00:00-03', 'FRA', 'IBS'),
+    (2, '2026-06-22T18:00:00-03', 'FRA', 'IRQ'),
     (2, '2026-06-22T21:00:00-03', 'NOR', 'SEN'),
     (2, '2026-06-23T00:00:00-03', 'JOR', 'ALG'),
     (2, '2026-06-23T14:00:00-03', 'POR', 'UZB'),
     (2, '2026-06-23T17:00:00-03', 'ENG', 'GHA'),
     (2, '2026-06-23T20:00:00-03', 'PAN', 'CRO'),
-    (2, '2026-06-23T23:00:00-03', 'COL', 'JDC'),
+    (2, '2026-06-23T23:00:00-03', 'COL', 'COD'),
 
     -- Group stage: Fecha 3 (matches 49-72)
     (3, '2026-06-24T16:00:00-03', 'SUI', 'CAN'),
-    (3, '2026-06-24T16:00:00-03', 'ITP', 'QAT'),
+    (3, '2026-06-24T16:00:00-03', 'BIH', 'QAT'),
     (3, '2026-06-24T19:00:00-03', 'MAR', 'HAI'),
     (3, '2026-06-24T19:00:00-03', 'BRA', 'SCO'),
     (3, '2026-06-24T22:00:00-03', 'RSA', 'KOR'),
-    (3, '2026-06-24T22:00:00-03', 'DMA', 'MEX'),
+    (3, '2026-06-24T22:00:00-03', 'CZE', 'MEX'),
     (3, '2026-06-25T17:00:00-03', 'CUW', 'CIV'),
     (3, '2026-06-25T17:00:00-03', 'ECU', 'GER'),
-    (3, '2026-06-25T20:00:00-03', 'JPN', 'USP'),
+    (3, '2026-06-25T20:00:00-03', 'JPN', 'SWE'),
     (3, '2026-06-25T20:00:00-03', 'TUN', 'NED'),
     (3, '2026-06-25T23:00:00-03', 'PAR', 'AUS'),
-    (3, '2026-06-25T23:00:00-03', 'TRK', 'USA'),
+    (3, '2026-06-25T23:00:00-03', 'TUR', 'USA'),
     (3, '2026-06-26T16:00:00-03', 'NOR', 'FRA'),
-    (3, '2026-06-26T16:00:00-03', 'SEN', 'IBS'),
+    (3, '2026-06-26T16:00:00-03', 'SEN', 'IRQ'),
     (3, '2026-06-26T21:00:00-03', 'CPV', 'KSA'),
     (3, '2026-06-26T21:00:00-03', 'URU', 'ESP'),
     (3, '2026-06-27T00:00:00-03', 'EGY', 'IRN'),
@@ -2094,7 +2112,7 @@ from (
     (3, '2026-06-27T18:00:00-03', 'CRO', 'GHA'),
     (3, '2026-06-27T18:00:00-03', 'PAN', 'ENG'),
     (3, '2026-06-27T20:30:00-03', 'COL', 'POR'),
-    (3, '2026-06-27T20:30:00-03', 'JDC', 'UZB'),
+    (3, '2026-06-27T20:30:00-03', 'COD', 'UZB'),
     (3, '2026-06-27T23:00:00-03', 'ALG', 'AUT'),
     (3, '2026-06-27T23:00:00-03', 'JOR', 'ARG'),
 
