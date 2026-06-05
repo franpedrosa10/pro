@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type FixtureRow = {
@@ -121,8 +121,16 @@ export function ProdePredictions({ copy, fixtures, predictions, initialDoubles, 
 
   const [viewMode, setViewMode] = useState<"matchday" | "all">("matchday");
   const [manualSelectedMatchdayId, setManualSelectedMatchdayId] = useState<string | null>(null);
+  const [liveNowTimestamp, setLiveNowTimestamp] = useState(() => new Date(nowIso).getTime());
   const router = useRouter();
-  const nowTimestamp = useMemo(() => new Date(nowIso).getTime(), [nowIso]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setLiveNowTimestamp(Date.now());
+    }, 30_000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   const editableFixtureIds = useMemo(() => {
     const ids = new Set<string>();
@@ -130,12 +138,12 @@ export function ProdePredictions({ copy, fixtures, predictions, initialDoubles, 
       if (fixture.status !== "scheduled") {
         continue;
       }
-      if (new Date(fixture.kickoff_at).getTime() > nowTimestamp) {
+      if (new Date(fixture.kickoff_at).getTime() > liveNowTimestamp) {
         ids.add(fixture.id);
       }
     }
     return ids;
-  }, [fixtures, nowTimestamp]);
+  }, [fixtures, liveNowTimestamp]);
 
   const editableFixtures = useMemo(
     () => fixtures.filter((fixture) => editableFixtureIds.has(fixture.id)),
@@ -421,9 +429,9 @@ export function ProdePredictions({ copy, fixtures, predictions, initialDoubles, 
           const fixtureKickoffTs = new Date(fixture.kickoff_at).getTime();
           const matchdayLockTs = new Date(fixture.matchday_lock_at).getTime();
 
-          const isLocked = fixture.status !== "scheduled" || fixtureKickoffTs <= nowTimestamp;
+          const isLocked = fixture.status !== "scheduled" || fixtureKickoffTs <= liveNowTimestamp;
           const isDoubleFixture = doubleByMatchday[fixture.matchday_id] === fixture.id;
-          const canToggleDouble = fixture.status === "scheduled" && fixtureKickoffTs > nowTimestamp && matchdayLockTs > nowTimestamp;
+          const canToggleDouble = fixture.status === "scheduled" && fixtureKickoffTs > liveNowTimestamp && matchdayLockTs > liveNowTimestamp;
 
           return (
             <article key={fixture.id} className={`panel-soft p-3 sm:p-3.5 ${isDoubleFixture ? "fixture-x2-active" : ""}`}>

@@ -53,6 +53,26 @@ export async function POST(request: Request) {
   const alreadyFinalized = Boolean(matchdayResult.data.is_finalized);
   const needsUpdate = shouldFinalize ? !alreadyFinalized : alreadyFinalized;
 
+  if (shouldFinalize) {
+    const fixturesResult = await supabase
+      .from("fixtures")
+      .select("id")
+      .eq("matchday_id", matchdayId)
+      .or("status.neq.finished,home_score.is.null,away_score.is.null")
+      .limit(1);
+
+    if (fixturesResult.error) {
+      return NextResponse.json({ error: fixturesResult.error.message }, { status: 400 });
+    }
+
+    if ((fixturesResult.data ?? []).length > 0) {
+      return NextResponse.json(
+        { error: "No podes publicar la fecha hasta que todos sus partidos esten finalizados con resultado cargado." },
+        { status: 400 },
+      );
+    }
+  }
+
   if (needsUpdate) {
     const updateResult = await supabase
       .from("matchdays")

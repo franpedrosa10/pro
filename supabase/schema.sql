@@ -979,10 +979,12 @@ select
   end::integer as points
 from public.prode_predictions pp
 join public.fixtures f on f.id = pp.fixture_id
+join public.matchdays m on m.id = f.matchday_id
 left join public.prode_matchday_multipliers pm
   on pm.user_id = pp.user_id
  and pm.fixture_id = pp.fixture_id
- and pm.matchday_id = f.matchday_id;
+ and pm.matchday_id = f.matchday_id
+where m.is_finalized = true;
 
 create or replace view public.v_prode_user_matchday_scores
 with (security_invoker = true) as
@@ -1529,10 +1531,22 @@ create policy matchdays_public_read on public.matchdays
   for select to authenticated
   using (true);
 
+drop policy if exists matchdays_update_admin on public.matchdays;
+create policy matchdays_update_admin on public.matchdays
+  for update to authenticated
+  using (public.is_admin_user(auth.uid()))
+  with check (public.is_admin_user(auth.uid()));
+
 drop policy if exists fixtures_public_read on public.fixtures;
 create policy fixtures_public_read on public.fixtures
   for select to authenticated
   using (true);
+
+drop policy if exists fixtures_update_admin on public.fixtures;
+create policy fixtures_update_admin on public.fixtures
+  for update to authenticated
+  using (public.is_admin_user(auth.uid()))
+  with check (public.is_admin_user(auth.uid()));
 
 drop policy if exists player_points_public_read on public.player_matchday_points;
 create policy player_points_public_read on public.player_matchday_points
