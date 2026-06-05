@@ -1,9 +1,10 @@
-const CACHE_VERSION = "prode-mundial-2026-v1";
+const CACHE_VERSION = "prode-mundial-2026-v2";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const NAVIGATION_FALLBACK = "/login";
 
 const STATIC_ASSETS = [
   NAVIGATION_FALLBACK,
+  "/icons/apple-touch-icon.png",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
   "/icons/icon-maskable-512.png",

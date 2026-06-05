@@ -1,6 +1,7 @@
 "use client";
 
-import { Download, MonitorDown, Share, X } from "lucide-react";
+import { ArrowDown, Download, Ellipsis, PlusSquare, Share, Smartphone, X } from "lucide-react";
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 
 type BeforeInstallPromptEvent = Event & {
@@ -46,12 +47,12 @@ export function PwaInstallPrompt() {
       isIos
         ? {
             title: "Agregá el Prode al inicio",
-            body: "Abrí Compartir y elegí Agregar a inicio para entrar como app.",
-            primary: "Listo",
+            body: "En iPhone: tocá los tres puntos, Compartir, bajá en el menú y elegí Agregar al inicio.",
+            primary: "Ya lo hice",
           }
         : {
             title: "Instalá el Prode",
-            body: "Sumalo al escritorio para entrar más rápido durante el Mundial.",
+            body: "Sumalo al inicio para entrar más rápido durante el Mundial.",
             primary: "Instalar",
           },
     [isIos],
@@ -151,21 +152,48 @@ export function PwaInstallPrompt() {
 
   return (
     <aside
-      className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-xl rounded-2xl border-2 border-[#1d2430] bg-[#fffdf5] p-3 shadow-[5px_5px_0_#1d2430] sm:bottom-4 sm:p-4"
+      className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-2xl rounded-2xl border-2 border-[#1d2430] bg-[#fffdf5] p-3 shadow-[5px_5px_0_#1d2430] sm:bottom-4 sm:p-4"
       aria-label="Instalar aplicación"
     >
-      <div className="flex items-start gap-3">
-        <span className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-[#1d2430] bg-[#ffd447] text-[#1d2430]">
-          {isIos ? <Share size={20} strokeWidth={2.2} /> : <MonitorDown size={21} strokeWidth={2.2} />}
-        </span>
+      <div className="flex items-start gap-3 sm:gap-4">
+        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl border-2 border-[#1d2430] bg-[#ffd447] shadow-[3px_3px_0_#1d2430]">
+          <Image src="/icons/icon-192.png" alt="" fill sizes="56px" priority unoptimized className="object-cover" />
+        </div>
 
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-extrabold text-[#1d2430]">{copy.title}</p>
-          <p className="mt-0.5 text-xs leading-5 text-[#4c5564] sm:text-sm">{copy.body}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1 rounded-full border-2 border-[#1d2430] bg-[#ffd447] px-2 py-0.5 text-[0.66rem] font-extrabold uppercase tracking-[0.12em] text-[#1d2430]">
+              <Smartphone size={13} strokeWidth={2.4} />
+              App
+            </span>
+            <p className="text-sm font-extrabold text-[#1d2430] sm:text-base">{copy.title}</p>
+          </div>
+          <p className="mt-1 text-xs leading-5 text-[#4c5564] sm:text-sm">{copy.body}</p>
+
+          {isIos ? (
+            <ol className="mt-3 grid grid-cols-2 gap-1.5 text-[0.68rem] font-bold text-[#253041] sm:grid-cols-4 sm:text-xs">
+              <li className="flex items-center gap-1.5 rounded-xl border-2 border-[#1d2430] bg-[#fff7d8] px-2 py-1.5">
+                <Ellipsis size={15} strokeWidth={2.4} />
+                Tres puntos
+              </li>
+              <li className="flex items-center gap-1.5 rounded-xl border-2 border-[#1d2430] bg-[#fff7d8] px-2 py-1.5">
+                <Share size={14} strokeWidth={2.4} />
+                Compartir
+              </li>
+              <li className="flex items-center gap-1.5 rounded-xl border-2 border-[#1d2430] bg-[#fff7d8] px-2 py-1.5">
+                <ArrowDown size={14} strokeWidth={2.4} />
+                Bajar
+              </li>
+              <li className="flex items-center gap-1.5 rounded-xl border-2 border-[#1d2430] bg-[#fff7d8] px-2 py-1.5">
+                <PlusSquare size={14} strokeWidth={2.4} />
+                Al inicio
+              </li>
+            </ol>
+          ) : null}
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <button type="button" onClick={handleInstall} className="btn-primary inline-flex items-center gap-2 px-3 py-2 text-xs">
-              <Download size={15} strokeWidth={2.3} />
+              {isIos ? <PlusSquare size={15} strokeWidth={2.3} /> : <Download size={15} strokeWidth={2.3} />}
               {copy.primary}
             </button>
             <button type="button" onClick={handleClose} className="btn-ghost px-3 py-2 text-xs">
